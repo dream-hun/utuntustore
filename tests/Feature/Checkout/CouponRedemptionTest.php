@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Models\Order;
 use App\Actions\Cart\AddToCart;
 use App\Actions\Checkout\BuildCheckoutQuote;
 use App\Actions\Checkout\PlaceOrder;
@@ -11,6 +10,7 @@ use App\Models\Address;
 use App\Models\Cart;
 use App\Models\Coupon;
 use App\Models\District;
+use App\Models\Order;
 use App\Models\Product;
 use App\Models\Sector;
 use App\Models\User;

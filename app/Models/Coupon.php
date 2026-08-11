@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use Database\Factories\CouponFactory;
 use App\Concerns\HasUuid;
 use App\Enums\CouponType;
 use Carbon\CarbonImmutable;
+use Database\Factories\CouponFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;

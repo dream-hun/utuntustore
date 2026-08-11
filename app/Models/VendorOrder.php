@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use Database\Factories\VendorOrderFactory;
 use App\Concerns\HasUuid;
 use App\Enums\OrderStatus;
 use Carbon\CarbonImmutable;
+use Database\Factories\VendorOrderFactory;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;

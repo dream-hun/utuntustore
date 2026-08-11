@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use Database\Factories\OrderFactory;
 use App\Concerns\HasUuid;
 use App\Enums\OrderPaymentMethod;
 use App\Enums\OrderStatus;
 use Carbon\CarbonImmutable;
+use Database\Factories\OrderFactory;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;

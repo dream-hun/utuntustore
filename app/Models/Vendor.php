@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use Database\Factories\VendorFactory;
 use App\Concerns\HasUuid;
 use App\Enums\SubscriptionStatus;
 use App\Enums\VendorStatus;
 use App\Enums\VendorSubscriptionStatus;
 use Carbon\CarbonImmutable;
+use Database\Factories\VendorFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;

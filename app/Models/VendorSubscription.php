@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use Database\Factories\VendorSubscriptionFactory;
 use App\Concerns\HasUuid;
 use App\Enums\SubscriptionPaymentMethod;
 use App\Enums\VendorSubscriptionStatus;
 use Carbon\CarbonImmutable;
+use Database\Factories\VendorSubscriptionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

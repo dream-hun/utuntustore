@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use Database\Factories\DistrictFactory;
 use App\Concerns\HasUuid;
 use Carbon\CarbonImmutable;
+use Database\Factories\DistrictFactory;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
