@@ -17,8 +17,8 @@ import { SectionHeader } from '@/components/storefront/section-header';
 import { VendorCard } from '@/components/storefront/vendor-card';
 import { Skeleton } from '@/components/ui/skeleton';
 import StorefrontLayout from '@/layouts/storefront-layout';
-import { show as categoryShow } from '@/routes/categories';
 import { shop } from '@/routes';
+import { show as categoryShow } from '@/routes/categories';
 import type {
     StorefrontCategoryLink,
     StorefrontProductCard,

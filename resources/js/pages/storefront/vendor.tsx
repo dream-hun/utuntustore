@@ -3,10 +3,8 @@ import { PackageSearch, Store, Truck } from 'lucide-react';
 import { EmptyState } from '@/components/empty-state';
 import { Money } from '@/components/money';
 import { PaginationNav } from '@/components/pagination-nav';
-import {
-    ProductGrid,
-    type StorefrontProduct,
-} from '@/components/storefront/product-card';
+import { ProductGrid } from '@/components/storefront/product-card';
+import type { StorefrontProduct } from '@/components/storefront/product-card';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import {

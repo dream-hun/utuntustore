@@ -8,9 +8,9 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { buttonVariants } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
-import { buttonVariants } from '@/components/ui/button';
 
 /**
  * Confirmation for destructive or irreversible actions.

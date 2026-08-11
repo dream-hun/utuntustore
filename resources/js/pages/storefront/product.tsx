@@ -4,7 +4,6 @@ import {
     ImageOff,
     MessageSquare,
     Package,
-    Star,
     Store,
     Truck,
 } from 'lucide-react';
@@ -21,10 +20,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import StorefrontLayout from '@/layouts/storefront-layout';
 import { formatDate } from '@/lib/format';
+import { shop } from '@/routes';
 import { store as cartStore } from '@/routes/cart';
 import { show as categoryShow } from '@/routes/categories';
 import { show as vendorShow } from '@/routes/vendors';
-import { shop } from '@/routes';
 import type { Paginated } from '@/types/marketplace';
 
 interface Variant {
@@ -199,6 +198,7 @@ export default function ProductPage({
                                 {product.images.map((image) => {
                                     const isActive =
                                         activeImage === image.web_url;
+
                                     return (
                                         <button
                                             key={image.id}
@@ -301,6 +301,7 @@ export default function ProductPage({
                                             variantId === variant.id;
                                         const isOos =
                                             variant.stock_quantity < 1;
+
                                         return (
                                             <Button
                                                 key={variant.id}

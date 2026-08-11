@@ -3,10 +3,8 @@ import { Star } from 'lucide-react';
 import { useState } from 'react';
 import { AccountNav } from '@/components/account/account-nav';
 import { RatingStars } from '@/components/account/rating-stars';
-import {
-    ReviewFormModal,
-    type ReviewTarget,
-} from '@/components/account/review-form-modal';
+import { ReviewFormModal } from '@/components/account/review-form-modal';
+import type { ReviewTarget } from '@/components/account/review-form-modal';
 import { EmptyState } from '@/components/empty-state';
 import { PaginationNav } from '@/components/pagination-nav';
 import { Badge } from '@/components/ui/badge';

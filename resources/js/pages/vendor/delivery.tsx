@@ -6,8 +6,6 @@ import { EmptyState } from '@/components/empty-state';
 import { FormModal } from '@/components/form-modal';
 import InputError from '@/components/input-error';
 import { Money } from '@/components/money';
-import { SubscriptionBanner } from '@/components/vendor/subscription-banner';
-import { VendorNav } from '@/components/vendor/vendor-nav';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -39,6 +37,8 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { SubscriptionBanner } from '@/components/vendor/subscription-banner';
+import { VendorNav } from '@/components/vendor/vendor-nav';
 import AppLayout from '@/layouts/app-layout';
 import { formatDeliveryEstimate } from '@/lib/format';
 

@@ -3,10 +3,8 @@ import { ChevronLeft, PackageSearch } from 'lucide-react';
 import { EmptyState } from '@/components/empty-state';
 import { PaginationNav } from '@/components/pagination-nav';
 import { CategoryPill } from '@/components/storefront/category-pill';
-import {
-    ProductGrid,
-    type StorefrontProduct,
-} from '@/components/storefront/product-card';
+import { ProductGrid } from '@/components/storefront/product-card';
+import type { StorefrontProduct } from '@/components/storefront/product-card';
 import { SectionHeader } from '@/components/storefront/section-header';
 import StorefrontLayout from '@/layouts/storefront-layout';
 import { shop } from '@/routes';

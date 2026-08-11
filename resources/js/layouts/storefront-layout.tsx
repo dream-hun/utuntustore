@@ -14,6 +14,13 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import AppLogoIcon from '@/components/app-logo-icon';
 import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import {
     Sheet,
@@ -22,17 +29,10 @@ import {
     SheetTitle,
     SheetTrigger,
 } from '@/components/ui/sheet';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import cart from '@/routes/cart';
 import { login, register, home, shop } from '@/routes';
 import { index as accountOrders } from '@/routes/account/orders';
 import { index as wishlistIndex } from '@/routes/account/wishlist';
+import cart from '@/routes/cart';
 import { show as categoryShow } from '@/routes/categories';
 import type { StorefrontCategoryLink } from '@/types/marketplace';
 
@@ -551,6 +551,7 @@ function CategoryNavBar({
 
                     {categories.map((cat) => {
                         const isActive = cat.slug === activeCategorySlug;
+
                         return (
                             <Link
                                 key={cat.id}

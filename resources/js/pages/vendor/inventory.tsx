@@ -4,8 +4,6 @@ import { Fragment, useState } from 'react';
 import { EmptyState } from '@/components/empty-state';
 import { PaginationNav } from '@/components/pagination-nav';
 import { ProductStatusBadge } from '@/components/status-badge';
-import { SubscriptionBanner } from '@/components/vendor/subscription-banner';
-import { VendorNav } from '@/components/vendor/vendor-nav';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,6 +16,8 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { SubscriptionBanner } from '@/components/vendor/subscription-banner';
+import { VendorNav } from '@/components/vendor/vendor-nav';
 import AppLayout from '@/layouts/app-layout';
 import type { Paginated, ProductStatus } from '@/types/marketplace';
 

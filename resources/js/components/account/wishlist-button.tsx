@@ -3,8 +3,8 @@ import { Heart } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
-import wishlist from '@/routes/account/wishlist';
 import { cn } from '@/lib/utils';
+import wishlist from '@/routes/account/wishlist';
 
 /**
  * "Save for later" for a signed-in customer.

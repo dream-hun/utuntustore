@@ -1,8 +1,8 @@
 import { Link } from '@inertiajs/react';
 import { Heart, Home, MapPin, Package, Star } from 'lucide-react';
-import account from '@/routes/account';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import { cn } from '@/lib/utils';
+import account from '@/routes/account';
 
 /**
  * Section nav for the customer account.

@@ -2,7 +2,6 @@ import { Deferred, Head } from '@inertiajs/react';
 import { Banknote, Info } from 'lucide-react';
 import { Money } from '@/components/money';
 import { SubscriptionStatusBadge } from '@/components/status-badge';
-import { VendorNav } from '@/components/vendor/vendor-nav';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -14,6 +13,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { VendorNav } from '@/components/vendor/vendor-nav';
 import AppLayout from '@/layouts/app-layout';
 import { formatDate, formatRelativeDays } from '@/lib/format';
 import type {

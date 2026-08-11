@@ -8,8 +8,6 @@ import InputError from '@/components/input-error';
 import { Money } from '@/components/money';
 import { PaginationNav } from '@/components/pagination-nav';
 import { ProductStatusBadge } from '@/components/status-badge';
-import { SubscriptionBanner } from '@/components/vendor/subscription-banner';
-import { VendorNav } from '@/components/vendor/vendor-nav';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -27,6 +25,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
     Table,
     TableBody,
@@ -36,7 +35,8 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
-import { Skeleton } from '@/components/ui/skeleton';
+import { SubscriptionBanner } from '@/components/vendor/subscription-banner';
+import { VendorNav } from '@/components/vendor/vendor-nav';
 import AppLayout from '@/layouts/app-layout';
 import type { Paginated, ProductStatus } from '@/types/marketplace';
 

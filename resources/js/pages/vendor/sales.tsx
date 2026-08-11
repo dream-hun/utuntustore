@@ -1,8 +1,6 @@
 import { Deferred, Head, router } from '@inertiajs/react';
-import { Banknote, Info } from 'lucide-react';
+import { Info } from 'lucide-react';
 import { Money } from '@/components/money';
-import { SubscriptionBanner } from '@/components/vendor/subscription-banner';
-import { VendorNav } from '@/components/vendor/vendor-nav';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -21,6 +19,8 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { SubscriptionBanner } from '@/components/vendor/subscription-banner';
+import { VendorNav } from '@/components/vendor/vendor-nav';
 import AppLayout from '@/layouts/app-layout';
 
 interface SalesReport {

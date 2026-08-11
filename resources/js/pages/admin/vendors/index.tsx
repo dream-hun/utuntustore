@@ -5,11 +5,11 @@ import { AdminNav } from '@/components/admin/admin-nav';
 import type { AdminVendorRow } from '@/components/admin/types';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { EmptyState } from '@/components/empty-state';
+import { PaginationNav } from '@/components/pagination-nav';
 import {
     SubscriptionStatusBadge,
     VendorStatusBadge,
 } from '@/components/status-badge';
-import { PaginationNav } from '@/components/pagination-nav';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,

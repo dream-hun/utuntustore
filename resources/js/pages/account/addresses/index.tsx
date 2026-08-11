@@ -2,10 +2,8 @@ import { Head, router } from '@inertiajs/react';
 import { MapPin, MoreHorizontal, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { AccountNav } from '@/components/account/account-nav';
-import {
-    AddressFormModal,
-    type AccountAddress,
-} from '@/components/account/address-form-modal';
+import { AddressFormModal } from '@/components/account/address-form-modal';
+import type { AccountAddress } from '@/components/account/address-form-modal';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { EmptyState } from '@/components/empty-state';
 import { PaginationNav } from '@/components/pagination-nav';

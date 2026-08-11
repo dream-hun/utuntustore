@@ -1,5 +1,5 @@
-import { cn } from '@/lib/utils';
 import { formatMoney } from '@/lib/format';
+import { cn } from '@/lib/utils';
 
 /**
  * Renders a whole-franc amount.

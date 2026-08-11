@@ -108,6 +108,8 @@ export default [
             'node_modules',
             'public',
             'bootstrap/ssr',
+            // Reference starter kit kept locally, not part of this application.
+            'joyful-commerce-kit-main',
             'tailwind.config.js',
             'vite.config.ts',
             'resources/js/actions/**',

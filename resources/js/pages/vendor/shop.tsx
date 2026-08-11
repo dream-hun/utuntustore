@@ -1,7 +1,5 @@
 import { Head, useForm } from '@inertiajs/react';
 import { ImageOff } from 'lucide-react';
-import { SubscriptionBanner } from '@/components/vendor/subscription-banner';
-import { VendorNav } from '@/components/vendor/vendor-nav';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
+import { SubscriptionBanner } from '@/components/vendor/subscription-banner';
+import { VendorNav } from '@/components/vendor/vendor-nav';
 import AppLayout from '@/layouts/app-layout';
 
 interface Shop {
