@@ -42,6 +42,8 @@ final class CategoryController extends Controller
         ]);
 
         return Inertia::render('storefront/category', [
+            'navCategories' => Inertia::defer(fn (): array => $this->navCategories()),
+
             'category' => [
                 ...$this->categoryLink($category),
                 'description' => $category->description,

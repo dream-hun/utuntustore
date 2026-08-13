@@ -147,3 +147,45 @@ it('shows a vendor shop page with only that vendor sellable products', function 
             ->where('products.total', 2),
         );
 });
+
+/**
+ * "You may also like" on a product page.
+ *
+ * Recommendations reach across shops on purpose: on a marketplace the useful
+ * comparison is what else the customer could buy instead, which usually means
+ * another vendor. The sellable rule still applies, so a lapsed vendor cannot get
+ * back in front of customers through someone else's product page.
+ */
+it('recommends other sellable products from the same category', function (): void {
+    $category = Category::factory()->create();
+    $otherCategory = Category::factory()->create();
+
+    $vendor = Vendor::factory()->sellable()->create();
+    $otherVendor = Vendor::factory()->sellable()->create();
+    $expired = Vendor::factory()->expired()->create();
+
+    $product = Product::factory()->for($vendor)->for($category)->published()->create();
+
+    $sameCategory = Product::factory()->for($otherVendor)->for($category)->published()->create();
+
+    Product::factory()->for($vendor)->for($otherCategory)->published()->create();
+    Product::factory()->for($expired)->for($category)->published()->create();
+    Product::factory()->for($vendor)->for($category)->create();
+
+    $this->get(route('products.show', $product), inertiaPartial('storefront/product', ['related']))
+        ->assertOk()
+        ->assertJsonCount(1, 'props.related')
+        ->assertJsonPath('props.related.0.id', $sameCategory->uuid);
+});
+
+it('recommends nothing when a product is alone in its category', function (): void {
+    $product = Product::factory()
+        ->for(Vendor::factory()->sellable())
+        ->for(Category::factory())
+        ->published()
+        ->create();
+
+    $this->get(route('products.show', $product), inertiaPartial('storefront/product', ['related']))
+        ->assertOk()
+        ->assertJsonCount(0, 'props.related');
+});

@@ -48,9 +48,7 @@ abstract class CategoryRequest extends FormRequest
         return [
             'name' => $this->string('name')->toString(),
             'parent_id' => $this->parentId(),
-            'description' => $this->filled('description')
-                ? $this->string('description')->toString()
-                : null,
+            'description' => $this->filled('description') ? $this->string('description')->toString() : null,
             'is_active' => $this->boolean('is_active'),
             'sort_order' => $this->integer('sort_order'),
         ];

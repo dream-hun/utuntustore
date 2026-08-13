@@ -441,6 +441,31 @@ export interface StorefrontCartLine {
     variant: { id: string; name: string } | null;
 }
 
+/** One line of the flat basket the cart drawer renders. */
+export interface StorefrontCartPreviewLine {
+    id: string;
+    name: string;
+    slug: string;
+    image_url: string | null;
+    vendor_name: string;
+    variant_name: string | null;
+    quantity: number;
+    unit_price: number;
+    subtotal: number;
+    max_quantity: number;
+}
+
+/**
+ * The cart drawer's basket. Shared as an optional prop, so it is only present once
+ * the drawer has asked for it — treat `undefined` as "not fetched yet", not "empty".
+ */
+export interface StorefrontCartPreview {
+    items: StorefrontCartPreviewLine[];
+    subtotal: number;
+    count: number;
+    currency: string;
+}
+
 /**
  * One shop's slice of the cart. The customer pays each of these separately, in
  * cash, when that shop delivers.

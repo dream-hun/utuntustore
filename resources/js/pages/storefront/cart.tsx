@@ -1,11 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { ImageOff, ShoppingCart, Store, Trash2 } from 'lucide-react';
-import { EmptyState } from '@/components/empty-state';
+import { ImageOff, Minus, Plus, Store, X } from 'lucide-react';
 import { Money } from '@/components/money';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
 import StorefrontLayout from '@/layouts/storefront-layout';
 import { shop } from '@/routes';
 import { destroy as cartDestroy, update as cartUpdate } from '@/routes/cart';
@@ -28,6 +23,10 @@ export default function CartPage({
     currency: string;
 }) {
     const updateQuantity = (item: StorefrontCartLine, quantity: number) => {
+        if (quantity < 1 || quantity > item.max_quantity) {
+            return;
+        }
+
         router.patch(
             cartUpdate.url({ item: item.id }),
             { quantity },
@@ -45,17 +44,20 @@ export default function CartPage({
         return (
             <StorefrontLayout>
                 <Head title="Cart" />
-                <div className="mx-auto w-full max-w-3xl px-4 py-24 text-center sm:px-6">
-                    <EmptyState
-                        icon={ShoppingCart}
-                        title="Your cart is empty"
-                        description="Browse the shop and add something you like."
-                        action={
-                            <Button asChild>
-                                <Link href={shop.url()}>Start shopping</Link>
-                            </Button>
-                        }
-                    />
+                <div className="mx-auto max-w-lg px-6 py-32 text-center">
+                    <span className="eyebrow text-muted-foreground">
+                        Your bag
+                    </span>
+                    <h1 className="mt-4 text-6xl">Empty.</h1>
+                    <p className="mt-6 text-muted-foreground">
+                        Nothing in here yet. Let’s fix that.
+                    </p>
+                    <Link
+                        href={shop.url()}
+                        className="mt-10 inline-block rounded-full bg-primary px-8 py-4 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
+                    >
+                        Browse local shops
+                    </Link>
                 </div>
             </StorefrontLayout>
         );
@@ -65,183 +67,206 @@ export default function CartPage({
         <StorefrontLayout>
             <Head title="Cart" />
 
-            <div className="mx-auto w-full max-w-[1200px] px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
-                <div className="mb-10 border-b border-border/60 pb-8">
-                    <p className="text-xs font-semibold tracking-[0.18em] text-[#168b8f] uppercase">
+            <div className="mx-auto w-full max-w-[1400px] px-4 py-12 lg:px-8 lg:py-16">
+                <header className="mb-12 border-b border-border pb-8">
+                    <span className="eyebrow text-muted-foreground">
                         Your bag
-                    </p>
-                    <h1 className="mt-2 text-4xl font-semibold tracking-[-0.05em] sm:text-5xl">
-                        Checkout
-                    </h1>
-                    <p className="mt-4 text-sm text-muted-foreground">
+                    </span>
+                    <h1 className="mt-3 text-4xl md:text-5xl">Your bag</h1>
+                    <p className="mt-5 max-w-xl text-sm leading-relaxed text-muted-foreground">
                         {itemCount} item{itemCount === 1 ? '' : 's'} from{' '}
                         {groups.length} shop{groups.length === 1 ? '' : 's'}.
-                        You pay each shop separately, in cash, when they
-                        deliver.
+                        You pay each shop separately, in cash, when it delivers.
                     </p>
-                </div>
+                </header>
 
-                <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-                    <div className="space-y-4">
+                <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-16">
+                    <div className="space-y-12">
                         {groups.map((group) => (
-                            <Card
+                            <section
                                 key={group.vendor.id}
-                                className="overflow-hidden rounded-2xl border-border/70 py-0 shadow-sm"
+                                aria-label={group.vendor.shop_name}
                             >
-                                <CardHeader>
-                                    <div className="flex flex-wrap items-center justify-between gap-2">
-                                        <CardTitle className="flex items-center gap-2 text-base">
-                                            <Store className="size-4" />
-                                            <Link
-                                                href={vendorShow.url({
-                                                    vendor: group.vendor.slug,
-                                                })}
-                                                className="hover:underline"
-                                            >
-                                                {group.vendor.shop_name}
-                                            </Link>
-                                        </CardTitle>
-                                        <Money
-                                            amount={group.subtotal}
-                                            currency={currency}
-                                            className="text-sm font-semibold"
+                                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-4">
+                                    <h2 className="flex items-center gap-2 text-lg">
+                                        <Store
+                                            className="size-4 text-primary"
+                                            aria-hidden="true"
                                         />
-                                    </div>
-
-                                    {!group.vendor.can_sell ? (
-                                        <p className="text-xs text-destructive">
-                                            This shop is not currently accepting
-                                            orders. Remove these items to check
-                                            out.
-                                        </p>
-                                    ) : null}
-                                </CardHeader>
-
-                                <CardContent className="divide-y divide-border">
-                                    {group.items.map((item) => (
-                                        <div
-                                            key={item.id}
-                                            className="flex items-start gap-4 py-4 first:pt-0 last:pb-0"
+                                        <Link
+                                            href={vendorShow.url({
+                                                vendor: group.vendor.slug,
+                                            })}
+                                            className="link-underline"
                                         >
-                                            <div className="size-20 shrink-0 overflow-hidden rounded-xl bg-[#f1f7f6]">
-                                                {item.product.image_url ? (
-                                                    <img
-                                                        src={
-                                                            item.product
-                                                                .image_url
-                                                        }
-                                                        alt={item.product.name}
-                                                        className="size-full object-cover"
-                                                    />
-                                                ) : (
-                                                    <div className="flex size-full items-center justify-center text-muted-foreground">
-                                                        <ImageOff className="size-5" />
-                                                    </div>
-                                                )}
-                                            </div>
+                                            {group.vendor.shop_name}
+                                        </Link>
+                                    </h2>
+                                    <Money
+                                        amount={group.subtotal}
+                                        currency={currency}
+                                        className="font-heading text-base"
+                                    />
+                                </div>
 
-                                            <div className="min-w-0 flex-1">
-                                                <p className="truncate text-sm font-medium">
-                                                    {item.product.name}
-                                                </p>
-                                                {item.variant ? (
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {item.variant.name}
-                                                    </p>
-                                                ) : null}
-                                                <Money
-                                                    amount={item.unit_price}
-                                                    currency={currency}
-                                                    className="text-xs text-muted-foreground"
+                                {!group.vendor.can_sell ? (
+                                    <p className="mt-3 text-xs text-destructive">
+                                        This shop is not currently accepting
+                                        orders. Remove these items to check out.
+                                    </p>
+                                ) : null}
+
+                                {group.items.map((item) => (
+                                    <div
+                                        key={item.id}
+                                        className="flex gap-4 border-b border-border py-6 sm:gap-6"
+                                    >
+                                        <div className="h-32 w-24 shrink-0 overflow-hidden rounded-2xl bg-cream sm:h-40 sm:w-32">
+                                            {item.product.image_url ? (
+                                                <img
+                                                    src={item.product.image_url}
+                                                    alt={item.product.name}
+                                                    className="size-full object-cover"
                                                 />
+                                            ) : (
+                                                <div className="flex size-full items-center justify-center text-muted-foreground">
+                                                    <ImageOff className="size-5" />
+                                                </div>
+                                            )}
+                                        </div>
 
-                                                <div className="mt-2 flex items-center gap-2">
-                                                    <Input
-                                                        type="number"
-                                                        min={1}
-                                                        max={item.max_quantity}
-                                                        value={item.quantity}
-                                                        onChange={(event) =>
-                                                            updateQuantity(
-                                                                item,
-                                                                Number(
-                                                                    event.target
-                                                                        .value,
-                                                                ),
-                                                            )
-                                                        }
-                                                        className="h-8 w-18"
+                                        <div className="flex min-w-0 flex-1 flex-col justify-between gap-4">
+                                            <div className="flex justify-between gap-4">
+                                                <div className="min-w-0">
+                                                    <p className="truncate font-heading text-lg sm:text-xl">
+                                                        {item.product.name}
+                                                    </p>
+                                                    {item.variant ? (
+                                                        <p className="mt-0.5 text-xs text-muted-foreground">
+                                                            {item.variant.name}
+                                                        </p>
+                                                    ) : null}
+                                                    <Money
+                                                        amount={item.unit_price}
+                                                        currency={currency}
+                                                        className="mt-1 block text-sm text-muted-foreground"
                                                     />
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() =>
-                                                            removeItem(item)
-                                                        }
-                                                    >
-                                                        <Trash2 className="size-4" />
-                                                        <span className="sr-only">
-                                                            Remove
-                                                        </span>
-                                                    </Button>
+                                                    {item.available_stock <
+                                                    item.quantity ? (
+                                                        <p className="mt-1 text-xs text-destructive">
+                                                            Only{' '}
+                                                            {
+                                                                item.available_stock
+                                                            }{' '}
+                                                            left in stock.
+                                                        </p>
+                                                    ) : null}
                                                 </div>
 
-                                                {item.available_stock <
-                                                item.quantity ? (
-                                                    <p className="mt-1 text-xs text-destructive">
-                                                        Only{' '}
-                                                        {item.available_stock}{' '}
-                                                        left in stock.
-                                                    </p>
-                                                ) : null}
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        removeItem(item)
+                                                    }
+                                                    className="h-fit rounded p-1 text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                                    aria-label={`Remove ${item.product.name}`}
+                                                >
+                                                    <X className="size-4" />
+                                                </button>
                                             </div>
 
-                                            <Money
-                                                amount={item.subtotal}
-                                                currency={currency}
-                                                className="text-sm font-medium"
-                                            />
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div className="flex items-center rounded-full border border-border">
+                                                    <button
+                                                        type="button"
+                                                        className="p-2 disabled:opacity-40"
+                                                        disabled={
+                                                            item.quantity <= 1
+                                                        }
+                                                        onClick={() =>
+                                                            updateQuantity(
+                                                                item,
+                                                                item.quantity -
+                                                                    1,
+                                                            )
+                                                        }
+                                                        aria-label={`Decrease quantity of ${item.product.name}`}
+                                                    >
+                                                        <Minus className="size-3" />
+                                                    </button>
+                                                    <span className="px-4 text-sm tabular-nums">
+                                                        {item.quantity}
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        className="p-2 disabled:opacity-40"
+                                                        disabled={
+                                                            item.quantity >=
+                                                            item.max_quantity
+                                                        }
+                                                        onClick={() =>
+                                                            updateQuantity(
+                                                                item,
+                                                                item.quantity +
+                                                                    1,
+                                                            )
+                                                        }
+                                                        aria-label={`Increase quantity of ${item.product.name}`}
+                                                    >
+                                                        <Plus className="size-3" />
+                                                    </button>
+                                                </div>
+
+                                                <Money
+                                                    amount={item.subtotal}
+                                                    currency={currency}
+                                                    className="font-heading text-base"
+                                                />
+                                            </div>
                                         </div>
-                                    ))}
-                                </CardContent>
-                            </Card>
+                                    </div>
+                                ))}
+                            </section>
                         ))}
                     </div>
 
-                    <div>
-                        <Card className="rounded-2xl border-0 bg-[#e9f8f6] shadow-none lg:sticky lg:top-28">
-                            <CardContent className="space-y-4">
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-muted-foreground">
-                                        Items subtotal
-                                    </span>
+                    <aside className="h-fit rounded-2xl bg-cream p-8 lg:sticky lg:top-28">
+                        <h2 className="mb-6 eyebrow text-muted-foreground">
+                            Order summary
+                        </h2>
+                        <dl className="space-y-3 text-sm">
+                            <div className="flex justify-between">
+                                <dt className="text-muted-foreground">
+                                    Items subtotal
+                                </dt>
+                                <dd>
                                     <Money
                                         amount={subtotal}
                                         currency={currency}
                                     />
-                                </div>
+                                </dd>
+                            </div>
+                            <div className="flex justify-between gap-6">
+                                <dt className="text-muted-foreground">
+                                    Delivery
+                                </dt>
+                                <dd className="text-right text-muted-foreground">
+                                    Per shop, worked out at checkout
+                                </dd>
+                            </div>
+                        </dl>
 
-                                <p className="text-xs text-muted-foreground">
-                                    Delivery is charged per shop and is worked
-                                    out at checkout, once you choose where it is
-                                    going.
-                                </p>
+                        <Link
+                            href={checkoutIndex.url()}
+                            className="mt-8 block rounded-full bg-primary py-4 text-center text-sm font-semibold text-primary-foreground transition hover:opacity-90"
+                        >
+                            Continue to checkout
+                        </Link>
 
-                                <Separator />
-
-                                <Button asChild className="w-full">
-                                    <Link href={checkoutIndex.url()}>
-                                        Continue to checkout
-                                    </Link>
-                                </Button>
-
-                                <p className="text-center text-xs text-muted-foreground">
-                                    Cash on delivery only.
-                                </p>
-                            </CardContent>
-                        </Card>
-                    </div>
+                        <p className="mt-4 text-center text-xs text-muted-foreground">
+                            Cash on delivery · You pay each shop at the door
+                        </p>
+                    </aside>
                 </div>
             </div>
         </StorefrontLayout>

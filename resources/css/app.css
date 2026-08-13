@@ -13,6 +13,12 @@
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
 
+    /* Storefront display face — headings and prices on the shop pages. */
+    --font-display:
+        'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif,
+        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+        'Noto Color Emoji';
+
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
     --radius-sm: calc(var(--radius) - 4px);
@@ -59,6 +65,15 @@
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
+
+    /* Storefront accents. Neutral surfaces the shop pages sit products on
+       (cream), the deep panel colour behind hero art (ink), and the teal
+       family the storefront's primary is drawn from. */
+    --color-cream: var(--cream);
+    --color-ink: var(--ink);
+    --color-gold: var(--gold);
+    --color-aqua: var(--aqua);
+    --color-aqua-soft: var(--aqua-soft);
 }
 
 :root {
@@ -95,6 +110,11 @@
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.87 0 0);
+    --cream: oklch(0.975 0.008 220);
+    --ink: oklch(0.19 0.03 255);
+    --gold: oklch(0.78 0.13 75);
+    --aqua: oklch(0.78 0.11 200);
+    --aqua-soft: oklch(0.95 0.03 200);
 }
 
 .dark {
@@ -130,6 +150,70 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(0.269 0 0);
     --sidebar-ring: oklch(0.439 0 0);
+    --cream: oklch(0.22 0.02 250);
+    --ink: oklch(0.14 0.02 255);
+    --gold: oklch(0.78 0.13 75);
+    --aqua: oklch(0.7 0.1 200);
+    --aqua-soft: oklch(0.28 0.04 210);
+}
+
+/* ─── Storefront theme ────────────────────────────────────────────────────────
+   The joyful-commerce palette, scoped to the storefront shell so the admin,
+   vendor and account dashboards keep the neutral app theme.
+
+   These re-declare the `--color-*` variables Tailwind's utilities read (rather
+   than the `--primary`-style source variables, which `@theme` already resolved
+   at `:root`), so `bg-primary`, `ring-ring` and `rounded-lg` pick up kit values
+   anywhere inside `.storefront`. They sit outside `@layer theme`, so they win
+   over Tailwind's own declarations regardless of specificity.
+
+   The body is matched too: Radix renders dialogs, sheets, dropdowns and select
+   menus through a portal into `<body>`, outside the layout wrapper, and they
+   would otherwise drop back to the neutral app palette mid-storefront. Only
+   storefront pages mount `.storefront`, so nothing else is affected. */
+.storefront,
+body:has(.storefront) {
+    --radius-lg: 0.875rem;
+    --radius-md: calc(0.875rem - 4px);
+    --radius-sm: calc(0.875rem - 6px);
+
+    --color-foreground: oklch(0.22 0.02 250);
+    --color-card: oklch(1 0 0);
+    --color-card-foreground: oklch(0.22 0.02 250);
+    --color-popover: oklch(1 0 0);
+    --color-popover-foreground: oklch(0.22 0.02 250);
+    --color-primary: oklch(0.72 0.12 205);
+    --color-primary-foreground: oklch(1 0 0);
+    --color-secondary: oklch(0.96 0.01 220);
+    --color-secondary-foreground: oklch(0.22 0.02 250);
+    --color-muted: oklch(0.96 0.01 220);
+    --color-muted-foreground: oklch(0.52 0.02 245);
+    --color-accent: oklch(0.95 0.03 200);
+    --color-accent-foreground: oklch(0.28 0.05 220);
+    --color-border: oklch(0.92 0.008 230);
+    --color-input: oklch(0.92 0.008 230);
+    --color-ring: oklch(0.72 0.12 205);
+
+    color: var(--color-foreground);
+    font-family: var(--font-display);
+}
+
+.dark .storefront,
+.dark body:has(.storefront) {
+    --color-background: oklch(0.16 0.02 250);
+    --color-foreground: oklch(0.96 0.005 220);
+    --color-card: oklch(0.2 0.02 250);
+    --color-card-foreground: oklch(0.96 0.005 220);
+    --color-popover: oklch(0.2 0.02 250);
+    --color-popover-foreground: oklch(0.96 0.005 220);
+    --color-secondary: oklch(0.26 0.02 250);
+    --color-secondary-foreground: oklch(0.96 0.005 220);
+    --color-muted: oklch(0.26 0.02 250);
+    --color-muted-foreground: oklch(0.72 0.02 240);
+    --color-accent: oklch(0.28 0.04 210);
+    --color-accent-foreground: oklch(0.96 0.005 220);
+    --color-border: oklch(0.3 0.02 250);
+    --color-input: oklch(0.3 0.02 250);
 }
 
 @layer base {
@@ -140,6 +224,61 @@
     body {
         @apply bg-background text-foreground;
     }
+
+    /* Storefront headings carry the display face and its tight tracking.
+       Utility classes on the element still win, so a page can opt out. */
+    body:has(.storefront) :is(h1, h2, h3, h4) {
+        font-family: var(--font-display);
+        font-weight: 700;
+        letter-spacing: -0.03em;
+    }
+}
+
+/* The display treatment the storefront gives its headings, applied to elements
+   that are not headings — product names, prices, the wordmark. */
+@utility font-heading {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+}
+
+/* Small-caps label sitting above a heading. */
+@utility eyebrow {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+/* Nav link whose underline wipes in from the left on hover. */
+@utility link-underline {
+    position: relative;
+
+    &::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        bottom: -3px;
+        height: 2px;
+        width: 100%;
+        background: var(--color-primary);
+        transform-origin: right;
+        transform: scaleX(0);
+        transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    &:hover::after {
+        transform-origin: left;
+        transform: scaleX(1);
+    }
+}
+
+/* The storefront's default surface: soft radius, hairline border, faint lift. */
+@utility card-soft {
+    border-radius: 1.25rem;
+    background: var(--color-card);
+    border: 1px solid var(--color-border);
+    box-shadow: 0 1px 2px oklch(0.2 0.02 250 / 0.04);
 }
 
 @layer utilities {

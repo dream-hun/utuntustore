@@ -10,9 +10,9 @@ interface CategoryPillProps {
 }
 
 /**
- * Pill-style category chip used in the horizontal scrollable nav and category
- * filter areas. The active state mirrors the primary button styling so it's
- * clear which filter is applied.
+ * Pill-style category chip used in category filter areas. The active state
+ * fills with the storefront primary so it's clear which filter is applied;
+ * the rest sit on a hairline border and warm to aqua on hover.
  */
 export function CategoryPill({
     name,
@@ -26,10 +26,10 @@ export function CategoryPill({
             href={href}
             aria-current={isActive ? 'page' : undefined}
             className={cn(
-                'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-4 py-1.5 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+                'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-4 py-1.5 text-sm font-medium transition focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
                 isActive
-                    ? 'border-primary bg-primary text-primary-foreground hover:bg-primary/90'
-                    : 'border-border bg-background text-foreground hover:bg-accent hover:text-accent-foreground',
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'border-border bg-card text-foreground hover:border-primary hover:bg-aqua-soft',
                 className,
             )}
         >

@@ -99,7 +99,12 @@ export function CatalogFilterPanel({
                 className="space-y-2"
                 role="search"
             >
-                <Label htmlFor={searchId}>Search</Label>
+                <Label
+                    htmlFor={searchId}
+                    className="eyebrow text-muted-foreground"
+                >
+                    Search
+                </Label>
                 <div className="flex gap-2">
                     <Input
                         id={searchId}
@@ -114,6 +119,7 @@ export function CatalogFilterPanel({
                         type="submit"
                         size="sm"
                         variant="secondary"
+                        className="rounded-full"
                         disabled={isLoading}
                     >
                         Search
@@ -122,7 +128,12 @@ export function CatalogFilterPanel({
             </form>
 
             <div className="space-y-2">
-                <Label htmlFor={categoryId}>Category</Label>
+                <Label
+                    htmlFor={categoryId}
+                    className="eyebrow text-muted-foreground"
+                >
+                    Category
+                </Label>
                 <Deferred
                     data="categories"
                     fallback={<Skeleton className="h-9 w-full" />}
@@ -155,7 +166,12 @@ export function CatalogFilterPanel({
             </div>
 
             <div className="space-y-2">
-                <Label htmlFor={vendorId}>Shop</Label>
+                <Label
+                    htmlFor={vendorId}
+                    className="eyebrow text-muted-foreground"
+                >
+                    Shop
+                </Label>
                 <Deferred
                     data="vendors"
                     fallback={<Skeleton className="h-9 w-full" />}
@@ -183,7 +199,9 @@ export function CatalogFilterPanel({
             </div>
 
             <div className="space-y-2">
-                <Label>Price (FRW)</Label>
+                <Label className="eyebrow text-muted-foreground">
+                    Price (FRW)
+                </Label>
                 <div className="flex items-center gap-2">
                     <Input
                         type="number"
@@ -234,7 +252,7 @@ export function CatalogFilterPanel({
                     type="button"
                     size="sm"
                     variant="outline"
-                    className="w-full"
+                    className="w-full rounded-full"
                     onClick={applyPriceRange}
                     disabled={isLoading}
                 >

@@ -4,9 +4,7 @@ import { useState } from 'react';
 import { FormModal } from '@/components/form-modal';
 import InputError from '@/components/input-error';
 import { Money } from '@/components/money';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -17,10 +15,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
 import { Spinner } from '@/components/ui/spinner';
 import StorefrontLayout from '@/layouts/storefront-layout';
 import { formatDeliveryEstimate } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import {
     index as checkoutIndex,
     store as checkoutStore,
@@ -42,11 +40,10 @@ function ProblemList({ problems }: { problems: StorefrontCheckoutProblem[] }) {
             {problems.map((problem) => (
                 <p
                     key={problem.code}
-                    className={
-                        problem.blocking
-                            ? 'flex items-center gap-1.5 text-xs text-destructive'
-                            : 'flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400'
-                    }
+                    className={cn(
+                        'flex items-center gap-1.5 text-xs',
+                        problem.blocking ? 'text-destructive' : 'text-gold',
+                    )}
                 >
                     <AlertTriangle className="size-3.5 shrink-0" />
                     {problem.message}
@@ -156,32 +153,41 @@ export default function Checkout({
         <StorefrontLayout>
             <Head title="Checkout" />
 
-            <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-                <h1 className="mb-6 text-2xl font-semibold tracking-tight">
-                    Checkout
-                </h1>
+            <div className="mx-auto w-full max-w-[1400px] px-4 py-12 lg:px-8 lg:py-16">
+                <header className="mb-12 border-b border-border pb-8">
+                    <span className="eyebrow text-muted-foreground">
+                        Almost there
+                    </span>
+                    <h1 className="mt-3 text-4xl md:text-5xl">Checkout</h1>
+                    <p className="mt-5 max-w-xl text-sm leading-relaxed text-muted-foreground">
+                        Choose where your order is going. Each shop delivers its
+                        own items and is paid in cash at the door — nothing is
+                        charged now.
+                    </p>
+                </header>
 
-                <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
-                    <div className="space-y-6">
-                        <Card>
-                            <CardHeader>
-                                <div className="flex flex-wrap items-center justify-between gap-2">
-                                    <CardTitle className="text-base">
-                                        Delivery address
-                                    </CardTitle>
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => setAddressModal(true)}
-                                    >
-                                        <Plus className="size-4" />
-                                        New address
-                                    </Button>
-                                </div>
-                            </CardHeader>
+                <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-16">
+                    <div className="space-y-10">
+                        {/* ─── Address ───────────────────────────────────── */}
+                        <section aria-labelledby="address-heading">
+                            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+                                <h2
+                                    id="address-heading"
+                                    className="text-lg sm:text-xl"
+                                >
+                                    Delivery address
+                                </h2>
+                                <button
+                                    type="button"
+                                    onClick={() => setAddressModal(true)}
+                                    className="inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-sm font-semibold transition hover:border-primary hover:bg-aqua-soft focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                >
+                                    <Plus className="size-4" />
+                                    New address
+                                </button>
+                            </div>
 
-                            <CardContent>
+                            <div className="pt-5">
                                 {addresses.length === 0 ? (
                                     <p className="text-sm text-muted-foreground">
                                         Add a delivery address to see which
@@ -197,7 +203,13 @@ export default function Checkout({
                                             <Label
                                                 key={address.id}
                                                 htmlFor={address.id}
-                                                className="flex cursor-pointer items-start gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-accent/50"
+                                                className={cn(
+                                                    'flex cursor-pointer items-start gap-3 rounded-2xl border p-4 transition',
+                                                    address.id ===
+                                                        selectedAddressId
+                                                        ? 'border-primary bg-aqua-soft'
+                                                        : 'border-border hover:border-primary',
+                                                )}
                                             >
                                                 <RadioGroupItem
                                                     value={address.id}
@@ -205,7 +217,7 @@ export default function Checkout({
                                                     className="mt-1"
                                                 />
                                                 <span className="text-sm font-normal">
-                                                    <span className="block font-medium">
+                                                    <span className="block font-semibold">
                                                         {address.first_name}{' '}
                                                         {address.last_name}
                                                     </span>
@@ -227,24 +239,33 @@ export default function Checkout({
                                         ))}
                                     </RadioGroup>
                                 )}
-                            </CardContent>
-                        </Card>
+                            </div>
+                        </section>
 
                         <ProblemList problems={quote.problems} />
 
+                        {/* ─── Per-shop breakdown ────────────────────────── */}
                         {quote.vendor_quotes.map((vendorQuote) => (
-                            <Card key={vendorQuote.vendor.id}>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2 text-base">
-                                        <Store className="size-4" />
+                            <section
+                                key={vendorQuote.vendor.id}
+                                aria-label={vendorQuote.vendor.shop_name}
+                            >
+                                <div className="border-b border-border pb-4">
+                                    <h2 className="flex items-center gap-2 text-lg">
+                                        <Store
+                                            className="size-4 text-primary"
+                                            aria-hidden="true"
+                                        />
                                         {vendorQuote.vendor.shop_name}
-                                    </CardTitle>
-                                    <ProblemList
-                                        problems={vendorQuote.problems}
-                                    />
-                                </CardHeader>
+                                    </h2>
+                                    <div className="mt-2">
+                                        <ProblemList
+                                            problems={vendorQuote.problems}
+                                        />
+                                    </div>
+                                </div>
 
-                                <CardContent className="space-y-3">
+                                <div className="space-y-3 pt-5">
                                     {vendorQuote.lines.map((line) => (
                                         <div
                                             key={line.id}
@@ -252,7 +273,7 @@ export default function Checkout({
                                         >
                                             <div className="flex items-start justify-between gap-3 text-sm">
                                                 <div className="min-w-0">
-                                                    <p className="truncate font-medium">
+                                                    <p className="truncate font-semibold">
                                                         {line.name}
                                                     </p>
                                                     {line.variant_name ? (
@@ -277,19 +298,16 @@ export default function Checkout({
                                         </div>
                                     ))}
 
-                                    <Separator />
-
-                                    <div className="flex justify-between text-sm">
+                                    <div className="flex justify-between border-t border-border pt-3 text-sm">
                                         <span className="flex items-center gap-1.5 text-muted-foreground">
                                             <Truck className="size-3.5" />
                                             Delivery
-                                            {vendorQuote.delivers
-                                                ? formatDeliveryEstimate(
-                                                      vendorQuote.estimated_days_min,
-                                                      vendorQuote.estimated_days_max,
-                                                  )
-                                                    ? ` (${formatDeliveryEstimate(vendorQuote.estimated_days_min, vendorQuote.estimated_days_max)})`
-                                                    : ''
+                                            {vendorQuote.delivers &&
+                                            formatDeliveryEstimate(
+                                                vendorQuote.estimated_days_min,
+                                                vendorQuote.estimated_days_max,
+                                            )
+                                                ? ` (${formatDeliveryEstimate(vendorQuote.estimated_days_min, vendorQuote.estimated_days_max)})`
                                                 : ''}
                                         </span>
                                         <Money
@@ -313,135 +331,145 @@ export default function Checkout({
                                         </div>
                                     ) : null}
 
-                                    <div className="flex justify-between rounded-md bg-muted/50 p-3 text-sm font-semibold">
+                                    <div className="flex justify-between gap-4 rounded-2xl bg-cream p-4 text-sm font-semibold">
                                         <span>
                                             Pay {vendorQuote.vendor.shop_name}{' '}
                                             on delivery
                                         </span>
                                         <Money amount={vendorQuote.total} />
                                     </div>
-                                </CardContent>
-                            </Card>
+                                </div>
+                            </section>
                         ))}
                     </div>
 
-                    <div>
-                        <Card className="lg:sticky lg:top-6">
-                            <CardContent className="space-y-4">
-                                <form
-                                    onSubmit={applyCoupon}
-                                    className="space-y-2"
+                    {/* ─── Summary ───────────────────────────────────────── */}
+                    <aside className="h-fit rounded-2xl bg-cream p-8 lg:sticky lg:top-28">
+                        <h2 className="mb-6 eyebrow text-muted-foreground">
+                            Order summary
+                        </h2>
+
+                        <form onSubmit={applyCoupon} className="space-y-2">
+                            <Label
+                                htmlFor="coupon"
+                                className="eyebrow text-muted-foreground"
+                            >
+                                Coupon code
+                            </Label>
+                            <div className="flex gap-2">
+                                <Input
+                                    id="coupon"
+                                    value={couponCode}
+                                    onChange={(event) =>
+                                        setCouponCode(
+                                            event.target.value.toUpperCase(),
+                                        )
+                                    }
+                                    placeholder="Optional"
+                                    className="rounded-full bg-background"
+                                />
+                                <Button
+                                    type="submit"
+                                    variant="outline"
+                                    className="rounded-full bg-background"
                                 >
-                                    <Label htmlFor="coupon">Coupon code</Label>
-                                    <div className="flex gap-2">
-                                        <Input
-                                            id="coupon"
-                                            value={couponCode}
-                                            onChange={(event) =>
-                                                setCouponCode(
-                                                    event.target.value.toUpperCase(),
-                                                )
-                                            }
-                                            placeholder="Optional"
-                                        />
-                                        <Button type="submit" variant="outline">
-                                            Apply
-                                        </Button>
-                                    </div>
-                                    {coupon ? (
-                                        <p
-                                            className={
-                                                coupon.applied
-                                                    ? 'text-xs text-emerald-600 dark:text-emerald-400'
-                                                    : 'text-xs text-destructive'
-                                            }
-                                        >
-                                            {coupon.message}
-                                        </p>
-                                    ) : null}
-                                </form>
+                                    Apply
+                                </Button>
+                            </div>
+                            {coupon ? (
+                                <p
+                                    className={cn(
+                                        'text-xs',
+                                        coupon.applied
+                                            ? 'text-primary'
+                                            : 'text-destructive',
+                                    )}
+                                >
+                                    {coupon.message}
+                                </p>
+                            ) : null}
+                        </form>
 
-                                <Separator />
-
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-muted-foreground">
-                                        Subtotal
-                                    </span>
+                        <dl className="mt-6 space-y-3 border-t border-border pt-6 text-sm">
+                            <div className="flex justify-between">
+                                <dt className="text-muted-foreground">
+                                    Subtotal
+                                </dt>
+                                <dd>
                                     <Money
                                         amount={quote.subtotal}
                                         currency={quote.currency}
                                     />
+                                </dd>
+                            </div>
+
+                            {quote.discount > 0 ? (
+                                <div className="flex justify-between">
+                                    <dt className="text-muted-foreground">
+                                        Discount
+                                    </dt>
+                                    <dd>
+                                        −
+                                        <Money
+                                            amount={quote.discount}
+                                            currency={quote.currency}
+                                        />
+                                    </dd>
                                 </div>
+                            ) : null}
 
-                                {quote.discount > 0 ? (
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-muted-foreground">
-                                            Discount
-                                        </span>
-                                        <span>
-                                            −
-                                            <Money
-                                                amount={quote.discount}
-                                                currency={quote.currency}
-                                            />
-                                        </span>
-                                    </div>
-                                ) : null}
-
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-muted-foreground">
-                                        Delivery ({quote.vendor_count} shop
-                                        {quote.vendor_count === 1 ? '' : 's'})
-                                    </span>
+                            <div className="flex justify-between">
+                                <dt className="text-muted-foreground">
+                                    Delivery ({quote.vendor_count} shop
+                                    {quote.vendor_count === 1 ? '' : 's'})
+                                </dt>
+                                <dd>
                                     <Money
                                         amount={quote.shipping_fee}
                                         currency={quote.currency}
                                     />
-                                </div>
+                                </dd>
+                            </div>
 
-                                <Separator />
-
-                                <div className="flex justify-between text-base font-semibold">
-                                    <span>Total</span>
+                            <div className="flex justify-between border-t border-border pt-3 text-base font-semibold">
+                                <dt>Total cash due</dt>
+                                <dd>
                                     <Money
                                         amount={quote.total}
                                         currency={quote.currency}
                                     />
-                                </div>
+                                </dd>
+                            </div>
+                        </dl>
 
-                                <Alert>
-                                    <Banknote className="size-4" />
-                                    <AlertDescription>
-                                        Cash on delivery. You pay each shop
-                                        directly when they hand over your items.
-                                    </AlertDescription>
-                                </Alert>
+                        <p className="mt-6 flex items-start gap-2 text-xs text-muted-foreground">
+                            <Banknote
+                                className="mt-0.5 size-4 shrink-0 text-primary"
+                                aria-hidden="true"
+                            />
+                            Cash on delivery. You pay each shop directly when it
+                            hands over your items.
+                        </p>
 
-                                <form onSubmit={submit}>
-                                    <Button
-                                        type="submit"
-                                        className="w-full"
-                                        disabled={
-                                            !quote.is_placeable ||
-                                            placeOrder.processing
-                                        }
-                                    >
-                                        {placeOrder.processing ? (
-                                            <Spinner />
-                                        ) : null}
-                                        Place order
-                                    </Button>
-                                </form>
+                        <form onSubmit={submit}>
+                            <button
+                                type="submit"
+                                disabled={
+                                    !quote.is_placeable || placeOrder.processing
+                                }
+                                className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary py-4 text-sm font-semibold text-primary-foreground transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50"
+                            >
+                                {placeOrder.processing ? <Spinner /> : null}
+                                Place order
+                            </button>
+                        </form>
 
-                                {!quote.is_placeable ? (
-                                    <p className="text-center text-xs text-muted-foreground">
-                                        Fix the issues above to place your
-                                        order.
-                                    </p>
-                                ) : null}
-                            </CardContent>
-                        </Card>
-                    </div>
+                        {!quote.is_placeable ? (
+                            <p className="mt-4 text-center text-xs text-muted-foreground">
+                                Fix the issues above to place your order.
+                            </p>
+                        ) : null}
+                    </aside>
                 </div>
             </div>
 

@@ -7,7 +7,6 @@ namespace App\Http\Controllers\Storefront;
 use App\Actions\Storefront\PickFeaturedVendors;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Storefront\Concerns\PresentsCatalog;
-use App\Models\Category;
 use App\Models\Product;
 use App\Models\Vendor;
 use Inertia\Inertia;
@@ -20,14 +19,7 @@ final class HomeController extends Controller
     public function __invoke(PickFeaturedVendors $featuredVendors): Response
     {
         return Inertia::render('storefront/home', [
-            'categories' => Inertia::defer(fn (): array => Category::query()
-                ->active()
-                ->whereNull('parent_id')
-                ->orderBy('sort_order')
-                ->limit(12)
-                ->get()
-                ->map(fn (Category $category): array => $this->categoryLink($category))
-                ->all()),
+            'categories' => Inertia::defer(fn (): array => $this->navCategories()),
 
             'latestProducts' => Inertia::defer(fn (): array => Product::query()
                 ->sellable()

@@ -7,7 +7,6 @@ import { CatalogFilterPanel } from '@/components/storefront/catalog-filter-panel
 import type { CatalogFilters } from '@/components/storefront/catalog-filter-panel';
 import { ProductGrid } from '@/components/storefront/product-card';
 import type { StorefrontProduct } from '@/components/storefront/product-card';
-import { SectionHeader } from '@/components/storefront/section-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -145,13 +144,20 @@ export default function Catalog({
         >
             <Head title="Shop" />
 
-            <div className="mx-auto w-full max-w-[1400px] px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
-                <div className="mb-10 border-b border-border/60 pb-10 sm:mb-12 sm:flex sm:items-end sm:justify-between">
-                    <SectionHeader
-                        as="h1"
-                        title="Shop"
-                        description={`${products.total.toLocaleString()} product${products.total === 1 ? '' : 's'} available`}
-                    />
+            <div className="mx-auto w-full max-w-[1400px] px-4 py-12 lg:px-8 lg:py-16">
+                <header className="mb-10 border-b border-border/60 pb-10 sm:mb-12 sm:flex sm:items-end sm:justify-between sm:gap-6">
+                    <div className="min-w-0">
+                        <span className="eyebrow text-muted-foreground">
+                            Collection
+                        </span>
+                        <h1 className="mt-3 text-4xl md:text-5xl">Shop</h1>
+                        <p className="mt-5 max-w-xl text-sm leading-relaxed text-muted-foreground">
+                            {products.total.toLocaleString()} product
+                            {products.total === 1 ? '' : 's'} from independent
+                            shops around you, delivered by the shop itself and
+                            paid for in cash at the door.
+                        </p>
+                    </div>
 
                     {/* Mobile filter trigger */}
                     <Sheet>
@@ -159,7 +165,7 @@ export default function Catalog({
                             <Button
                                 variant="outline"
                                 size="sm"
-                                className="w-full gap-2 sm:hidden"
+                                className="mt-6 w-full gap-2 rounded-full sm:hidden"
                             >
                                 <SlidersHorizontal className="size-4" />
                                 Filters
@@ -183,7 +189,7 @@ export default function Catalog({
                             <div className="p-4">{filterPanel}</div>
                         </SheetContent>
                     </Sheet>
-                </div>
+                </header>
 
                 {/* Active filter chips */}
                 {activeFilters.length > 0 ? (
@@ -200,7 +206,7 @@ export default function Catalog({
                                 type="button"
                                 onClick={() => clearFilter(f.key)}
                                 disabled={isLoading}
-                                className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/20 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-aqua-soft px-3 py-1 text-xs font-semibold text-primary transition hover:border-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                                 aria-label={`Remove filter: ${f.label}`}
                             >
                                 {f.label}
@@ -224,9 +230,11 @@ export default function Catalog({
                         className="hidden lg:block"
                         aria-label="Product filters"
                     >
-                        <div className="sticky top-28 space-y-6 rounded-2xl border border-border/70 bg-card p-5">
+                        <div className="sticky top-28 space-y-6 card-soft p-5">
                             <div className="flex items-center justify-between">
-                                <p className="text-sm font-semibold">Filters</p>
+                                <p className="font-heading text-base">
+                                    Filters
+                                </p>
                                 {activeFilters.length > 0 ? (
                                     <button
                                         type="button"
@@ -272,7 +280,7 @@ export default function Catalog({
                                 disabled={isLoading}
                             >
                                 <SelectTrigger
-                                    className="w-[180px]"
+                                    className="w-[180px] rounded-full"
                                     aria-label="Sort products"
                                 >
                                     <SelectValue />
@@ -301,6 +309,7 @@ export default function Catalog({
                                         <Button
                                             variant="outline"
                                             size="sm"
+                                            className="rounded-full"
                                             onClick={clearAll}
                                             disabled={isLoading}
                                         >

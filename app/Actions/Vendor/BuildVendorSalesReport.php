@@ -94,9 +94,7 @@ final readonly class BuildVendorSalesReport
     {
         // SQLite (tests) and MySQL (production) spell month truncation differently, and
         // this is the only place in the vendor area that needs it.
-        $month = DB::connection()->getDriverName() === 'sqlite'
-            ? "strftime('%Y-%m', delivered_at)"
-            : "DATE_FORMAT(delivered_at, '%Y-%m')";
+        $month = DB::connection()->getDriverName() === 'sqlite' ? "strftime('%Y-%m', delivered_at)" : "DATE_FORMAT(delivered_at, '%Y-%m')";
 
         return VendorOrder::query()
             ->where('vendor_id', $vendor->id)

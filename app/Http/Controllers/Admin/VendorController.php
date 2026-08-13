@@ -104,7 +104,7 @@ final class VendorController extends Controller
                 ->all(),
 
             'recentOrders' => $vendor->vendorOrders()
-                ->with('order:id,order_number')
+                ->with('order:id,uuid,order_number')
                 ->latest('created_at')
                 ->limit(10)
                 ->get()

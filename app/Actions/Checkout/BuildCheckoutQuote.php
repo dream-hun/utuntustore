@@ -226,8 +226,14 @@ final readonly class BuildCheckoutQuote
             $eligible,
         ));
 
+        // Unreachable from handle(): CalculateCouponDiscount computes the eligible
+        // subtotal the same way and returns 0 when it is empty, so a discount above
+        // zero guarantees one here. Kept as the divide-by-zero guard for the intdiv()
+        // below, and ignored for coverage because no cart can drive it.
         if ($eligibleSubtotal <= 0) {
+            // @codeCoverageIgnoreStart
             return $vendorQuotes;
+            // @codeCoverageIgnoreEnd
         }
 
         $allocated = 0;

@@ -37,6 +37,8 @@ final class VendorController extends Controller
         ]);
 
         return Inertia::render('storefront/vendor', [
+            'navCategories' => Inertia::defer(fn (): array => $this->navCategories()),
+
             'vendor' => [
                 ...$this->vendorCard($vendor),
                 'description' => $vendor->description,
