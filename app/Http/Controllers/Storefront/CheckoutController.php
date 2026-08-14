@@ -120,6 +120,26 @@ final class CheckoutController extends Controller
         // eligibility can all have moved since the screen was rendered.
         $quote = $this->quotes->handle($cart, $address, $coupon);
 
+        // An order is placed at the total the customer agreed to, or not at all.
+        //
+        // A price change is deliberately not a blocking problem — the cart's unit_price
+        // is only a display snapshot, and nothing refreshes it, so treating one as
+        // blocking would wedge the customer on the checkout screen with no way through
+        // but emptying their basket. Instead the screen posts the total it showed, and
+        // a re-quote that disagrees sends them back to look at the new figure rather
+        // than charging it. Confirming again posts the new total and goes through.
+        //
+        // This also covers a coupon that lapsed between render and submit, which
+        // silently yields a discount of zero and records no problem at all.
+        if ($quote->total !== $request->expectedTotal()) {
+            Inertia::flash('toast', [
+                'type' => 'warning',
+                'message' => __('Prices changed while you were checking out. Please review your order and confirm again.'),
+            ]);
+
+            return back();
+        }
+
         try {
             $order = $placeOrder->handle($this->currentUser($request), $cart, $quote);
         } catch (CheckoutException $checkoutException) {

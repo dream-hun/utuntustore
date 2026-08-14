@@ -100,6 +100,7 @@ export default function Checkout({
     const placeOrder = useForm({
         address_id: selectedAddressId ?? '',
         coupon_code: coupon?.applied ? coupon.code : '',
+        expected_total: quote.total,
     });
 
     const submit = (event: React.FormEvent) => {
@@ -109,6 +110,10 @@ export default function Checkout({
             ...data,
             address_id: selectedAddressId ?? '',
             coupon_code: coupon?.applied ? coupon.code : '',
+            // The total as rendered right now, so the server can refuse to place an
+            // order whose price moved since. Read from the current quote rather than
+            // from form state, which would still hold the figure from first render.
+            expected_total: quote.total,
         }));
 
         placeOrder.post(checkoutStore.url());
