@@ -1,5 +1,7 @@
 import { Deferred, Head, router } from '@inertiajs/react';
 import { Info } from 'lucide-react';
+import type { DataTableColumn } from '@/components/data-table';
+import { DataTable } from '@/components/data-table';
 import { Money } from '@/components/money';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,17 +13,63 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
 import { SubscriptionBanner } from '@/components/vendor/subscription-banner';
 import { VendorNav } from '@/components/vendor/vendor-nav';
 import AppLayout from '@/layouts/app-layout';
+
+interface MonthRow {
+    month: string;
+    collected: number;
+    order_count: number;
+}
+
+interface TopProductRow {
+    name: string;
+    quantity: number;
+    collected: number;
+}
+
+const monthColumns: DataTableColumn<MonthRow>[] = [
+    {
+        id: 'month',
+        header: 'Month',
+        cellClassName: 'text-sm',
+        cell: (row) => row.month,
+    },
+    {
+        id: 'orders',
+        header: 'Orders',
+        cellClassName: 'text-sm',
+        cell: (row) => row.order_count,
+    },
+    {
+        id: 'collected',
+        header: 'Collected',
+        align: 'end',
+        cell: (row) => <Money amount={row.collected} />,
+    },
+];
+
+const topProductColumns: DataTableColumn<TopProductRow>[] = [
+    {
+        id: 'product',
+        header: 'Product',
+        cellClassName: 'text-sm',
+        cell: (row) => row.name,
+    },
+    {
+        id: 'quantity',
+        header: 'Qty',
+        cellClassName: 'text-sm',
+        cell: (row) => row.quantity,
+    },
+    {
+        id: 'collected',
+        header: 'Collected',
+        align: 'end',
+        cell: (row) => <Money amount={row.collected} />,
+    },
+];
 
 interface SalesReport {
     collected: number;
@@ -74,7 +122,7 @@ export default function VendorSales({
                     </div>
 
                     <Select value={period} onValueChange={setPeriod}>
-                        <SelectTrigger className="w-44">
+                        <SelectTrigger className="w-44" aria-label="Period">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -171,54 +219,18 @@ export default function VendorSales({
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    {(report?.by_month ?? []).length === 0 ? (
-                                        <p className="text-sm text-muted-foreground">
-                                            No deliveries in this period.
-                                        </p>
-                                    ) : (
-                                        <div className="overflow-x-auto">
-                                            <Table>
-                                                <TableHeader>
-                                                    <TableRow>
-                                                        <TableHead>
-                                                            Month
-                                                        </TableHead>
-                                                        <TableHead>
-                                                            Orders
-                                                        </TableHead>
-                                                        <TableHead className="text-right">
-                                                            Collected
-                                                        </TableHead>
-                                                    </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
-                                                    {(
-                                                        report?.by_month ?? []
-                                                    ).map((row) => (
-                                                        <TableRow
-                                                            key={row.month}
-                                                        >
-                                                            <TableCell className="text-sm">
-                                                                {row.month}
-                                                            </TableCell>
-                                                            <TableCell className="text-sm">
-                                                                {
-                                                                    row.order_count
-                                                                }
-                                                            </TableCell>
-                                                            <TableCell className="text-right">
-                                                                <Money
-                                                                    amount={
-                                                                        row.collected
-                                                                    }
-                                                                />
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    ))}
-                                                </TableBody>
-                                            </Table>
-                                        </div>
-                                    )}
+                                    <DataTable
+                                        caption="Sales by month"
+                                        bordered={false}
+                                        columns={monthColumns}
+                                        rows={report?.by_month}
+                                        getRowKey={(row) => row.month}
+                                        empty={
+                                            <p className="text-sm text-muted-foreground">
+                                                No deliveries in this period.
+                                            </p>
+                                        }
+                                    />
                                 </CardContent>
                             </Card>
 
@@ -229,54 +241,18 @@ export default function VendorSales({
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    {(report?.top_products ?? []).length ===
-                                    0 ? (
-                                        <p className="text-sm text-muted-foreground">
-                                            Nothing sold in this period.
-                                        </p>
-                                    ) : (
-                                        <div className="overflow-x-auto">
-                                            <Table>
-                                                <TableHeader>
-                                                    <TableRow>
-                                                        <TableHead>
-                                                            Product
-                                                        </TableHead>
-                                                        <TableHead>
-                                                            Qty
-                                                        </TableHead>
-                                                        <TableHead className="text-right">
-                                                            Collected
-                                                        </TableHead>
-                                                    </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
-                                                    {(
-                                                        report?.top_products ??
-                                                        []
-                                                    ).map((row) => (
-                                                        <TableRow
-                                                            key={row.name}
-                                                        >
-                                                            <TableCell className="text-sm">
-                                                                {row.name}
-                                                            </TableCell>
-                                                            <TableCell className="text-sm">
-                                                                {row.quantity}
-                                                            </TableCell>
-                                                            <TableCell className="text-right">
-                                                                <Money
-                                                                    amount={
-                                                                        row.collected
-                                                                    }
-                                                                />
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    ))}
-                                                </TableBody>
-                                            </Table>
-                                        </div>
-                                    )}
+                                    <DataTable
+                                        caption="Top products"
+                                        bordered={false}
+                                        columns={topProductColumns}
+                                        rows={report?.top_products}
+                                        getRowKey={(row) => row.name}
+                                        empty={
+                                            <p className="text-sm text-muted-foreground">
+                                                Nothing sold in this period.
+                                            </p>
+                                        }
+                                    />
                                 </CardContent>
                             </Card>
                         </div>

@@ -1,5 +1,5 @@
 import { Deferred, Head, Link, router } from '@inertiajs/react';
-import { Banknote, Plus } from 'lucide-react';
+import { Banknote, CircleSlash, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { AdminNav } from '@/components/admin/admin-nav';
 import { RecordPaymentModal } from '@/components/admin/record-payment-modal';
@@ -15,9 +15,11 @@ import type {
     RevenueTotals,
 } from '@/components/admin/types';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import type { DataTableColumn } from '@/components/data-table';
+import { DataTable } from '@/components/data-table';
 import { EmptyState } from '@/components/empty-state';
 import { Money } from '@/components/money';
-import { PaginationNav } from '@/components/pagination-nav';
+import { RowActions } from '@/components/row-actions';
 import { SubscriptionStatusBadge } from '@/components/status-badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -29,19 +31,28 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
+import { useTableFilters } from '@/hooks/use-table-filters';
 import AppLayout from '@/layouts/app-layout';
 import { formatDate, formatRelativeDays } from '@/lib/format';
 import type { Paginated } from '@/types/marketplace';
 
 const ANY = 'any';
+
+/**
+ * These values are the ones `SubscriptionController::period()` matches on. The
+ * select previously offered `month` and `year`, which that match statement does
+ * not recognise, so both fell through to its `all` default and the filter
+ * silently did nothing.
+ */
+const ALL_TIME = 'all';
+
+const periodOptions = [
+    { value: ALL_TIME, label: 'All time' },
+    { value: 'this_month', label: 'This month' },
+    { value: 'last_month', label: 'Last month' },
+    { value: 'this_year', label: 'This year' },
+    { value: 'last_12_months', label: 'Last 12 months' },
+];
 
 export default function AdminSubscriptions({
     subscriptions,
@@ -67,17 +78,88 @@ export default function AdminSubscriptions({
         null,
     );
 
-    const apply = (next: Record<string, string | undefined>) => {
-        router.get(
-            '/admin/subscriptions',
-            {
-                status: filters.status ?? undefined,
-                period: filters.period ?? undefined,
-                ...next,
-            },
-            { preserveState: true, preserveScroll: true, replace: true },
-        );
-    };
+    const { values, set } = useTableFilters({
+        url: '/admin/subscriptions',
+        filters,
+    });
+
+    const columns: DataTableColumn<AdminSubscriptionRow>[] = [
+        {
+            id: 'shop',
+            header: 'Shop',
+            cell: (subscription) => (
+                <Link
+                    href={`/admin/vendors/${subscription.vendor.id}`}
+                    className="text-sm font-medium hover:underline"
+                >
+                    {subscription.vendor.shop_name}
+                </Link>
+            ),
+        },
+        {
+            id: 'period',
+            header: 'Period',
+            cellClassName: 'text-xs whitespace-nowrap',
+            cell: (subscription) => (
+                <>
+                    {formatDate(subscription.starts_at)} –{' '}
+                    {formatDate(subscription.ends_at)}
+                </>
+            ),
+        },
+        {
+            id: 'status',
+            header: 'Status',
+            cellClassName: 'text-xs capitalize',
+            cell: (subscription) => subscription.status,
+        },
+        {
+            id: 'reference',
+            header: 'Reference',
+            cellClassName: 'text-xs',
+            cell: (subscription) => subscription.reference ?? '—',
+        },
+        {
+            id: 'amount',
+            header: 'Amount',
+            align: 'end',
+            cell: (subscription) => (
+                <Money
+                    amount={subscription.amount}
+                    currency={subscription.currency}
+                />
+            ),
+        },
+        {
+            id: 'actions',
+            header: 'Actions',
+            headerHidden: true,
+            headClassName: 'w-10',
+            cell: (subscription) => (
+                <RowActions
+                    rowLabel={subscription.vendor.shop_name}
+                    groups={[
+                        {
+                            // An empty group renders nothing, so a lapsed period
+                            // simply has no menu.
+                            actions:
+                                subscription.status === 'active'
+                                    ? [
+                                          {
+                                              label: 'Cancel subscription',
+                                              icon: CircleSlash,
+                                              destructive: true,
+                                              onSelect: () =>
+                                                  setCancelling(subscription),
+                                          },
+                                      ]
+                                    : [],
+                        },
+                    ]}
+                />
+            ),
+        },
+    ];
 
     return (
         <AppLayout
@@ -164,12 +246,12 @@ export default function AdminSubscriptions({
 
                 <div className="flex flex-wrap gap-3">
                     <Select
-                        value={filters.status ?? ANY}
+                        value={values.status ?? ANY}
                         onValueChange={(value) =>
-                            apply({ status: value === ANY ? undefined : value })
+                            set('status', value === ANY ? null : value, true)
                         }
                     >
-                        <SelectTrigger className="w-44">
+                        <SelectTrigger className="w-44" aria-label="Status">
                             <SelectValue placeholder="Any status" />
                         </SelectTrigger>
                         <SelectContent>
@@ -182,117 +264,47 @@ export default function AdminSubscriptions({
                     </Select>
 
                     <Select
-                        value={filters.period ?? 'all'}
-                        onValueChange={(value) => apply({ period: value })}
+                        value={values.period ?? ALL_TIME}
+                        onValueChange={(value) =>
+                            set(
+                                'period',
+                                value === ALL_TIME ? null : value,
+                                true,
+                            )
+                        }
                     >
-                        <SelectTrigger className="w-44">
+                        <SelectTrigger className="w-44" aria-label="Period">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">All time</SelectItem>
-                            <SelectItem value="month">This month</SelectItem>
-                            <SelectItem value="year">This year</SelectItem>
+                            {periodOptions.map((option) => (
+                                <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                >
+                                    {option.label}
+                                </SelectItem>
+                            ))}
                         </SelectContent>
                     </Select>
                 </div>
 
                 <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-                    <div className="space-y-4">
-                        {subscriptions.data.length === 0 ? (
+                    <DataTable
+                        caption="Subscription payments"
+                        columns={columns}
+                        rows={subscriptions.data}
+                        getRowKey={(subscription) => subscription.id}
+                        paginator={subscriptions}
+                        className="gap-4"
+                        empty={
                             <EmptyState
                                 icon={Banknote}
                                 title="No subscriptions"
                                 description="Record a payment once a vendor has paid you."
                             />
-                        ) : (
-                            <>
-                                <div className="overflow-x-auto rounded-lg border">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Shop</TableHead>
-                                                <TableHead>Period</TableHead>
-                                                <TableHead>Status</TableHead>
-                                                <TableHead>Reference</TableHead>
-                                                <TableHead className="text-right">
-                                                    Amount
-                                                </TableHead>
-                                                <TableHead className="w-10" />
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {subscriptions.data.map(
-                                                (subscription) => (
-                                                    <TableRow
-                                                        key={subscription.id}
-                                                    >
-                                                        <TableCell>
-                                                            <Link
-                                                                href={`/admin/vendors/${subscription.vendor.id}`}
-                                                                className="text-sm font-medium hover:underline"
-                                                            >
-                                                                {
-                                                                    subscription
-                                                                        .vendor
-                                                                        .shop_name
-                                                                }
-                                                            </Link>
-                                                        </TableCell>
-                                                        <TableCell className="text-xs whitespace-nowrap">
-                                                            {formatDate(
-                                                                subscription.starts_at,
-                                                            )}{' '}
-                                                            –{' '}
-                                                            {formatDate(
-                                                                subscription.ends_at,
-                                                            )}
-                                                        </TableCell>
-                                                        <TableCell className="text-xs capitalize">
-                                                            {
-                                                                subscription.status
-                                                            }
-                                                        </TableCell>
-                                                        <TableCell className="text-xs">
-                                                            {subscription.reference ??
-                                                                '—'}
-                                                        </TableCell>
-                                                        <TableCell className="text-right">
-                                                            <Money
-                                                                amount={
-                                                                    subscription.amount
-                                                                }
-                                                                currency={
-                                                                    subscription.currency
-                                                                }
-                                                            />
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            {subscription.status ===
-                                                            'active' ? (
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="sm"
-                                                                    onClick={() =>
-                                                                        setCancelling(
-                                                                            subscription,
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    Cancel
-                                                                </Button>
-                                                            ) : null}
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ),
-                                            )}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-
-                                <PaginationNav paginator={subscriptions} />
-                            </>
-                        )}
-                    </div>
+                        }
+                    />
 
                     <Card>
                         <CardHeader>

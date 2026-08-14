@@ -1,22 +1,18 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { MoreHorizontal, Plus, Truck } from 'lucide-react';
+import { Pencil, Plus, Trash2, Truck } from 'lucide-react';
 import { useState } from 'react';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import type { DataTableColumn } from '@/components/data-table';
+import { DataTable } from '@/components/data-table';
 import { EmptyState } from '@/components/empty-state';
 import { FormModal } from '@/components/form-modal';
 import InputError from '@/components/input-error';
 import { Money } from '@/components/money';
+import { RowActions } from '@/components/row-actions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -29,14 +25,6 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
 import { SubscriptionBanner } from '@/components/vendor/subscription-banner';
 import { VendorNav } from '@/components/vendor/vendor-nav';
 import AppLayout from '@/layouts/app-layout';
@@ -163,6 +151,100 @@ export default function VendorDelivery({
 
     const sectorsReady = sectorsDistrictId === addForm.data.district_id;
 
+    const areaLabel = (area: Area) =>
+        area.sector
+            ? `${area.district.name} · ${area.sector.name}`
+            : area.district.name;
+
+    const columns: DataTableColumn<Area>[] = [
+        {
+            id: 'area',
+            header: 'Area',
+            cell: (area) => (
+                <>
+                    <span className="text-sm font-medium">
+                        {area.district.name}
+                    </span>
+                    {area.sector ? (
+                        <span className="text-sm text-muted-foreground">
+                            {' '}
+                            · {area.sector.name}
+                        </span>
+                    ) : (
+                        <Badge variant="secondary" className="ml-2">
+                            Whole district
+                        </Badge>
+                    )}
+                </>
+            ),
+        },
+        {
+            id: 'delivery_time',
+            header: 'Delivery time',
+            cellClassName: 'text-sm text-muted-foreground',
+            cell: (area) =>
+                formatDeliveryEstimate(
+                    area.estimated_days_min,
+                    area.estimated_days_max,
+                ),
+        },
+        {
+            id: 'active',
+            header: 'Active',
+            cell: (area) =>
+                area.is_active ? (
+                    <Badge className="border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+                        Active
+                    </Badge>
+                ) : (
+                    <Badge variant="secondary">Paused</Badge>
+                ),
+        },
+        {
+            id: 'fee',
+            header: 'Fee',
+            align: 'end',
+            cell: (area) =>
+                area.delivery_fee === 0 ? (
+                    'Free'
+                ) : (
+                    <Money amount={area.delivery_fee} />
+                ),
+        },
+        {
+            id: 'actions',
+            header: 'Actions',
+            headerHidden: true,
+            headClassName: 'w-10',
+            cell: (area) => (
+                <RowActions
+                    rowLabel={areaLabel(area)}
+                    groups={[
+                        {
+                            actions: [
+                                {
+                                    label: 'Edit',
+                                    icon: Pencil,
+                                    onSelect: () => openEdit(area),
+                                },
+                            ],
+                        },
+                        {
+                            actions: [
+                                {
+                                    label: 'Remove',
+                                    icon: Trash2,
+                                    destructive: true,
+                                    onSelect: () => setRemoving(area),
+                                },
+                            ],
+                        },
+                    ]}
+                />
+            ),
+        },
+    ];
+
     return (
         <AppLayout
             breadcrumbs={[
@@ -206,118 +288,25 @@ export default function VendorDelivery({
                     </CardContent>
                 </Card>
 
-                {areas.length === 0 ? (
-                    <EmptyState
-                        icon={Truck}
-                        title="You have no delivery areas"
-                        description="Until you add at least one, nobody can order from your shop."
-                        action={
-                            <Button onClick={() => setAdding(true)}>
-                                <Plus className="size-4" />
-                                Add coverage
-                            </Button>
-                        }
-                    />
-                ) : (
-                    <div className="overflow-x-auto rounded-lg border">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Area</TableHead>
-                                    <TableHead>Delivery time</TableHead>
-                                    <TableHead>Active</TableHead>
-                                    <TableHead className="text-right">
-                                        Fee
-                                    </TableHead>
-                                    <TableHead className="w-10" />
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {areas.map((area) => (
-                                    <TableRow key={area.id}>
-                                        <TableCell>
-                                            <span className="text-sm font-medium">
-                                                {area.district.name}
-                                            </span>
-                                            {area.sector ? (
-                                                <span className="text-sm text-muted-foreground">
-                                                    {' '}
-                                                    · {area.sector.name}
-                                                </span>
-                                            ) : (
-                                                <Badge
-                                                    variant="secondary"
-                                                    className="ml-2"
-                                                >
-                                                    Whole district
-                                                </Badge>
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="text-sm text-muted-foreground">
-                                            {formatDeliveryEstimate(
-                                                area.estimated_days_min,
-                                                area.estimated_days_max,
-                                            )}
-                                        </TableCell>
-                                        <TableCell>
-                                            {area.is_active ? (
-                                                <Badge className="border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
-                                                    Active
-                                                </Badge>
-                                            ) : (
-                                                <Badge variant="secondary">
-                                                    Paused
-                                                </Badge>
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            {area.delivery_fee === 0 ? (
-                                                'Free'
-                                            ) : (
-                                                <Money
-                                                    amount={area.delivery_fee}
-                                                />
-                                            )}
-                                        </TableCell>
-                                        <TableCell>
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                    >
-                                                        <MoreHorizontal className="size-4" />
-                                                        <span className="sr-only">
-                                                            Actions
-                                                        </span>
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem
-                                                        onSelect={() =>
-                                                            openEdit(area)
-                                                        }
-                                                    >
-                                                        Edit
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuSeparator />
-                                                    <DropdownMenuItem
-                                                        variant="destructive"
-                                                        onSelect={() =>
-                                                            setRemoving(area)
-                                                        }
-                                                    >
-                                                        Remove
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </div>
-                )}
+                <DataTable
+                    caption="Delivery areas"
+                    columns={columns}
+                    rows={areas}
+                    getRowKey={(area) => area.id}
+                    empty={
+                        <EmptyState
+                            icon={Truck}
+                            title="You have no delivery areas"
+                            description="Until you add at least one, nobody can order from your shop."
+                            action={
+                                <Button onClick={() => setAdding(true)}>
+                                    <Plus className="size-4" />
+                                    Add coverage
+                                </Button>
+                            }
+                        />
+                    }
+                />
             </div>
 
             <FormModal

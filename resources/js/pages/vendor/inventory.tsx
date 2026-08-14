@@ -1,23 +1,17 @@
 import { Head, router } from '@inertiajs/react';
 import { Boxes } from 'lucide-react';
-import { Fragment, useState } from 'react';
+import { useState } from 'react';
+import type { DataTableColumn } from '@/components/data-table';
+import { DataTable } from '@/components/data-table';
 import { EmptyState } from '@/components/empty-state';
-import { PaginationNav } from '@/components/pagination-nav';
 import { ProductStatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
 import { SubscriptionBanner } from '@/components/vendor/subscription-banner';
 import { VendorNav } from '@/components/vendor/vendor-nav';
+import { useTableFilters } from '@/hooks/use-table-filters';
 import AppLayout from '@/layouts/app-layout';
 import type { Paginated, ProductStatus } from '@/types/marketplace';
 
@@ -42,14 +36,26 @@ interface InventoryRow {
 }
 
 /**
+ * A product and its variants are separate rows in one table, so the list is
+ * flattened to one entry per row before it reaches the table. Rendering a product
+ * and its children as a single logical row is what forced the old page to
+ * hand-roll its markup.
+ */
+type InventoryEntry =
+    | { kind: 'product'; product: InventoryRow }
+    | { kind: 'variant'; product: InventoryRow; variant: InventoryVariant };
+
+/**
  * An inline stock field that only writes when the value actually changed and the
  * field loses focus, so typing "12" does not fire a request for "1" then "12".
  */
 function StockField({
     value,
+    label,
     onCommit,
 }: {
     value: number;
+    label: string;
     onCommit: (next: number) => void;
 }) {
     const [draft, setDraft] = useState(String(value));
@@ -59,6 +65,7 @@ function StockField({
             type="number"
             min={0}
             value={draft}
+            aria-label={label}
             className="h-8 w-24"
             onChange={(event) => setDraft(event.target.value)}
             onBlur={() => {
@@ -79,19 +86,13 @@ export default function VendorInventory({
     products: Paginated<InventoryRow>;
     filters: { search: string | null; low_stock: boolean };
 }) {
-    const [search, setSearch] = useState(filters.search ?? '');
-
-    const apply = (next: Record<string, string | undefined>) => {
-        router.get(
-            '/vendor/inventory',
-            {
-                search: search || undefined,
-                low_stock: filters.low_stock ? '1' : undefined,
-                ...next,
-            },
-            { preserveState: true, preserveScroll: true, replace: true },
-        );
-    };
+    const { values, set, commit, clear, isFiltered } = useTableFilters({
+        url: '/vendor/inventory',
+        filters: {
+            search: filters.search,
+            low_stock: filters.low_stock ? '1' : null,
+        },
+    });
 
     const setProductStock = (product: InventoryRow, stock: number) => {
         router.put(
@@ -108,6 +109,92 @@ export default function VendorInventory({
             { preserveScroll: true },
         );
     };
+
+    const entries: InventoryEntry[] = products.data.flatMap((product) => [
+        { kind: 'product' as const, product },
+        ...product.variants.map((variant) => ({
+            kind: 'variant' as const,
+            product,
+            variant,
+        })),
+    ]);
+
+    const columns: DataTableColumn<InventoryEntry>[] = [
+        {
+            id: 'product',
+            header: 'Product',
+            cell: (entry) =>
+                entry.kind === 'product' ? (
+                    <>
+                        <p className="text-sm font-medium">
+                            {entry.product.name}
+                        </p>
+                        {entry.product.sku ? (
+                            <p className="text-xs text-muted-foreground">
+                                {entry.product.sku}
+                            </p>
+                        ) : null}
+                    </>
+                ) : (
+                    <div className="pl-6 text-sm">
+                        {/* Indentation is the only visual cue that this row belongs
+                            to the product above it, and indentation is invisible to
+                            a screen reader. */}
+                        <span className="sr-only">
+                            Variant of {entry.product.name}:{' '}
+                        </span>
+                        {entry.variant.name}
+                    </div>
+                ),
+        },
+        {
+            id: 'status',
+            header: 'Status',
+            cell: (entry) =>
+                entry.kind === 'product' ? (
+                    <ProductStatusBadge status={entry.product.status} />
+                ) : (
+                    <span className="text-xs text-muted-foreground">
+                        {entry.variant.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                ),
+        },
+        {
+            id: 'threshold',
+            header: 'Low stock at',
+            cellClassName: 'text-sm text-muted-foreground',
+            cell: (entry) =>
+                entry.kind === 'product'
+                    ? entry.product.low_stock_threshold
+                    : null,
+        },
+        {
+            id: 'stock',
+            header: 'Stock',
+            align: 'end',
+            cell: (entry) => (
+                <div className="flex justify-end">
+                    {entry.kind === 'product' ? (
+                        <StockField
+                            value={entry.product.stock_quantity}
+                            label={`Stock for ${entry.product.name}`}
+                            onCommit={(next) =>
+                                setProductStock(entry.product, next)
+                            }
+                        />
+                    ) : (
+                        <StockField
+                            value={entry.variant.stock_quantity}
+                            label={`Stock for ${entry.product.name}, ${entry.variant.name}`}
+                            onCommit={(next) =>
+                                setVariantStock(entry.variant, next)
+                            }
+                        />
+                    )}
+                </div>
+            ),
+        },
+    ];
 
     return (
         <AppLayout
@@ -130,13 +217,20 @@ export default function VendorInventory({
                     <form
                         onSubmit={(event) => {
                             event.preventDefault();
-                            apply({});
+                            commit();
                         }}
                         className="flex gap-2"
                     >
+                        <label htmlFor="inventory-search" className="sr-only">
+                            Search products
+                        </label>
                         <Input
-                            value={search}
-                            onChange={(event) => setSearch(event.target.value)}
+                            id="inventory-search"
+                            type="search"
+                            value={values.search ?? ''}
+                            onChange={(event) =>
+                                set('search', event.target.value)
+                            }
                             placeholder="Search products"
                             className="w-56"
                         />
@@ -148,124 +242,51 @@ export default function VendorInventory({
                     <div className="flex items-center gap-2">
                         <Switch
                             id="low_stock"
-                            checked={filters.low_stock}
+                            checked={values.low_stock === '1'}
                             onCheckedChange={(checked) =>
-                                apply({ low_stock: checked ? '1' : undefined })
+                                set('low_stock', checked ? '1' : null, true)
                             }
                         />
                         <Label htmlFor="low_stock">Low stock only</Label>
                     </div>
                 </div>
 
-                {products.data.length === 0 ? (
-                    <EmptyState
-                        icon={Boxes}
-                        title="Nothing to show"
-                        description="Add products to start tracking stock."
-                    />
-                ) : (
-                    <>
-                        <div className="overflow-x-auto rounded-lg border">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Product</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead>Low stock at</TableHead>
-                                        <TableHead className="text-right">
-                                            Stock
-                                        </TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {products.data.map((product) => (
-                                        <Fragment key={product.id}>
-                                            <TableRow
-                                                className={
-                                                    product.is_low_stock
-                                                        ? 'bg-amber-500/5'
-                                                        : undefined
-                                                }
-                                            >
-                                                <TableCell>
-                                                    <p className="text-sm font-medium">
-                                                        {product.name}
-                                                    </p>
-                                                    {product.sku ? (
-                                                        <p className="text-xs text-muted-foreground">
-                                                            {product.sku}
-                                                        </p>
-                                                    ) : null}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <ProductStatusBadge
-                                                        status={product.status}
-                                                    />
-                                                </TableCell>
-                                                <TableCell className="text-sm text-muted-foreground">
-                                                    {
-                                                        product.low_stock_threshold
-                                                    }
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex justify-end">
-                                                        <StockField
-                                                            value={
-                                                                product.stock_quantity
-                                                            }
-                                                            onCommit={(next) =>
-                                                                setProductStock(
-                                                                    product,
-                                                                    next,
-                                                                )
-                                                            }
-                                                        />
-                                                    </div>
-                                                </TableCell>
-                                            </TableRow>
-
-                                            {product.variants.map((variant) => (
-                                                <TableRow
-                                                    key={variant.id}
-                                                    className="bg-muted/30"
-                                                >
-                                                    <TableCell className="pl-8 text-sm">
-                                                        {variant.name}
-                                                    </TableCell>
-                                                    <TableCell className="text-xs text-muted-foreground">
-                                                        {variant.is_active
-                                                            ? 'Active'
-                                                            : 'Inactive'}
-                                                    </TableCell>
-                                                    <TableCell />
-                                                    <TableCell>
-                                                        <div className="flex justify-end">
-                                                            <StockField
-                                                                value={
-                                                                    variant.stock_quantity
-                                                                }
-                                                                onCommit={(
-                                                                    next,
-                                                                ) =>
-                                                                    setVariantStock(
-                                                                        variant,
-                                                                        next,
-                                                                    )
-                                                                }
-                                                            />
-                                                        </div>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </Fragment>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-
-                        <PaginationNav paginator={products} />
-                    </>
-                )}
+                <DataTable
+                    caption="Inventory"
+                    columns={columns}
+                    rows={entries}
+                    getRowKey={(entry) =>
+                        entry.kind === 'product'
+                            ? `product-${entry.product.id}`
+                            : `variant-${entry.variant.id}`
+                    }
+                    paginator={products}
+                    rowClassName={(entry) =>
+                        entry.kind === 'variant'
+                            ? 'bg-muted/30'
+                            : entry.product.is_low_stock
+                              ? 'bg-amber-500/5'
+                              : undefined
+                    }
+                    empty={
+                        <EmptyState
+                            icon={Boxes}
+                            title="Nothing to show"
+                            description={
+                                isFiltered
+                                    ? 'No product matches these filters.'
+                                    : 'Add products to start tracking stock.'
+                            }
+                            action={
+                                isFiltered ? (
+                                    <Button variant="outline" onClick={clear}>
+                                        Clear filters
+                                    </Button>
+                                ) : undefined
+                            }
+                        />
+                    }
+                />
             </div>
         </AppLayout>
     );
