@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 use App\Actions\Storefront\PickFeaturedVendors;
 use App\Actions\Storefront\ResolveCategoryBranch;
+use App\Actions\Vendor\BuildVendorDashboard;
+use App\Models\Cart;
+use App\Models\CartItem;
 use App\Models\Category;
 use App\Models\District;
 use App\Models\Product;
@@ -150,4 +153,75 @@ it('shares no vendor context for a customer', function (): void {
         ->get(route('home'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page->where('auth.vendor', null));
+});
+
+/**
+ * Capture the SQL a callback runs.
+ *
+ * @return array<int, string>
+ */
+function sqlDuring(Closure $callback): array
+{
+    DB::flushQueryLog();
+    DB::enableQueryLog();
+
+    $callback();
+
+    $log = DB::getQueryLog();
+
+    DB::disableQueryLog();
+
+    return array_map(static fn (array $entry): string => (string) $entry['query'], $log);
+}
+
+it('shares the cart badge for one query, on every page in the application', function (): void {
+    $customer = User::factory()->customer()->create();
+    $vendor = Vendor::factory()->sellable()->create();
+    $product = Product::factory()->for($vendor)->published()->create();
+
+    $cart = Cart::factory()->create(['user_id' => $customer->id]);
+    CartItem::factory()->create([
+        'cart_id' => $cart->id,
+        'product_id' => $product->id,
+        'product_variant_id' => null,
+        'quantity' => 2,
+        'unit_price' => $product->price,
+    ]);
+
+    // The account overview defers every one of its own props, so a plain visit to it
+    // is a clean measurement of what the shared props alone cost. `cartCount` is a
+    // closure, and a closure prop is NOT lazy — Inertia resolves it on every request,
+    // including admin and vendor screens that never render a basket. Finding the cart
+    // row and then summing it was two round trips on all of them; it is one aggregate.
+    $queries = sqlDuring(fn () => $this->actingAs($customer)
+        ->get(route('account.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->where('cartCount', 2)));
+
+    expect($queries)->toHaveCount(1);
+});
+
+it('does not rebuild the catalog for a partial reload that never asked for it', function (): void {
+    $vendor = Vendor::factory()->sellable()->create();
+    Product::factory()->count(3)->for($vendor)->published()->create();
+
+    // What the cart drawer sends when it opens. The action still runs in full, so a
+    // prop computed eagerly into a local would be paid for and then dropped on the
+    // floor — every open, and twice per quantity tap. Behind a closure it never runs.
+    $queries = sqlDuring(fn () => $this->get(route('shop'), inertiaPartial('storefront/catalog', ['cartPreview']))
+        ->assertOk());
+
+    foreach ($queries as $query) {
+        expect($query)->not->toContain('from "products"');
+    }
+});
+
+it('builds the vendor dashboard in one pass per table, not one per number', function (): void {
+    $vendor = Vendor::factory()->sellable()->create();
+    Product::factory()->count(3)->for($vendor)->published()->create();
+
+    // Nine counts over three tables, each re-scanning the same vendor's rows to answer
+    // a different question about them, and all nine serial.
+    expect(queriesDuring(fn () => resolve(BuildVendorDashboard::class)->handle($vendor)))
+        ->toBeLessThanOrEqual(3);
 });

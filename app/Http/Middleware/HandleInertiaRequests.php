@@ -6,9 +6,11 @@ namespace App\Http\Middleware;
 
 use App\Actions\Cart\BuildCartPreview;
 use App\Models\Cart;
+use App\Models\CartItem;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Support\Cast;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Middleware;
@@ -64,7 +66,10 @@ final class HandleInertiaRequests extends Middleware
                 'vendor' => $user?->isVendor() === true ? $this->vendorProps($user->vendor) : null,
             ],
 
-            // Resolved lazily so the count query only runs on the pages that read it.
+            // A plain closure is NOT lazy — Inertia resolves every one of them on every
+            // request, and only skips props on a partial reload that did not ask for
+            // them. So this runs on admin and vendor screens too, and it is kept to a
+            // single aggregate query for that reason.
             'cartCount' => fn (): int => $this->cartCount($request),
 
             // Optional, so the basket is only assembled when the cart drawer actually
@@ -103,15 +108,45 @@ final class HandleInertiaRequests extends Middleware
         ];
     }
 
+    /**
+     * The number of items in the visitor's basket, as one aggregate query.
+     *
+     * This is the single most-executed query in the application — it runs on every
+     * request that renders any Inertia page, signed in or not. It deliberately does
+     * not go through {@see currentCart()}: finding the cart row and then summing its
+     * items is two round trips and hydrates a Cart model whose only use would be its
+     * primary key. Selecting that key as a subquery instead does the whole thing in
+     * one, and returns no rows at all for the many visitors who have never added
+     * anything.
+     */
     private function cartCount(Request $request): int
     {
-        $cart = $this->currentCart($request);
+        return Cast::int(
+            CartItem::query()
+                ->whereIn('cart_id', fn (QueryBuilder $query): QueryBuilder => $this->currentCartIdQuery($request, $query))
+                ->sum('quantity'),
+        );
+    }
 
-        if (! $cart instanceof Cart) {
-            return 0;
+    /**
+     * Select the id of the visitor's cart, for use as a subquery.
+     *
+     * Both branches hit a unique index on carts (user_id, session_id), so this stays a
+     * primary-key-shaped lookup however many carts the table holds.
+     */
+    private function currentCartIdQuery(Request $request, QueryBuilder $query): QueryBuilder
+    {
+        $query->select('id')->from('carts');
+
+        $user = $request->user();
+
+        if ($user instanceof User) {
+            return $query->where('user_id', $user->id);
         }
 
-        return Cast::int($cart->items()->sum('quantity'));
+        return $query
+            ->whereNull('user_id')
+            ->where('session_id', $request->session()->getId());
     }
 
     /**
@@ -129,13 +164,11 @@ final class HandleInertiaRequests extends Middleware
     {
         $user = $request->user();
 
-        if ($user instanceof User) {
-            return $user->cart;
-        }
-
-        return Cart::query()
-            ->whereNull('user_id')
-            ->where('session_id', $request->session()->getId())
-            ->first();
+        return $user instanceof User
+            ? $user->cart
+            : Cart::query()
+                ->whereNull('user_id')
+                ->where('session_id', $request->session()->getId())
+                ->first();
     }
 }

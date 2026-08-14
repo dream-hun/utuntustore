@@ -11,6 +11,7 @@ use App\Http\Requests\Storefront\CatalogFilterRequest;
 use App\Models\Product;
 use App\Models\Vendor;
 use App\Models\VendorDeliveryArea;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -20,6 +21,9 @@ use Inertia\Response;
  * A vendor who cannot sell — unapproved, suspended, or past their subscription's
  * grace period — 404s here. Their shop disappears from the storefront while every
  * row they own stays exactly where it was.
+ *
+ * The props are closures so a partial reload that only wants a shared prop does not
+ * re-run this shop's listing to throw it away.
  */
 final class VendorController extends Controller
 {
@@ -29,26 +33,26 @@ final class VendorController extends Controller
     {
         abort_unless($vendor->canSell(), 404);
 
-        $vendor->load('media');
-
-        $paginator = $products->handle([
-            ...$request->catalogFilters(),
-            'vendor_id' => $vendor->id,
-        ]);
-
         return Inertia::render('storefront/vendor', [
             'navCategories' => Inertia::defer(fn (): array => $this->navCategories()),
 
-            'vendor' => [
-                ...$this->vendorCard($vendor),
-                'description' => $vendor->description,
-                'delivery_notes' => $vendor->delivery_notes,
-                'banner_url' => $vendor->getFirstMediaUrl('banner', 'web') ?: null,
-                'phone' => $vendor->phone,
-                'email' => $vendor->email,
-            ],
+            'vendor' => function () use ($vendor): array {
+                $vendor->load('media');
 
-            'products' => $paginator->through(fn (Product $product): array => $this->productCard($product)),
+                return [
+                    ...$this->vendorCard($vendor),
+                    'description' => $vendor->description,
+                    'delivery_notes' => $vendor->delivery_notes,
+                    'banner_url' => $vendor->getFirstMediaUrl('banner', 'web') ?: null,
+                    'phone' => $vendor->phone,
+                    'email' => $vendor->email,
+                ];
+            },
+
+            'products' => fn (): LengthAwarePaginator => $products->handle([
+                ...$request->catalogFilters(),
+                'vendor_id' => $vendor->id,
+            ])->through(fn (Product $product): array => $this->productCard($product)),
 
             'filters' => [
                 'search' => $request->input('search'),

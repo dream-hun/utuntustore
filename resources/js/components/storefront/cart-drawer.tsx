@@ -37,6 +37,19 @@ export function CartDrawer() {
         }
     }, [isOpen]);
 
+    /**
+     * Both mutations redirect back, and `only` rides through that redirect — so the
+     * response to the write already carries the new basket, and no follow-up reload
+     * is needed. Refetching afterwards instead cost two round trips per tap, and the
+     * first of them re-ran the whole underlying page (a catalog's pagination, say)
+     * only to discard every prop but this one.
+     *
+     * `cartCount` is asked for alongside, which also fixes the header badge going
+     * stale until the next full visit. Flash data is not a prop, so the server's
+     * toast still arrives.
+     */
+    const only = ['cartPreview', 'cartCount'];
+
     const setQuantity = (id: string, quantity: number) => {
         router.patch(
             cartUpdate.url({ item: id }),
@@ -44,7 +57,7 @@ export function CartDrawer() {
             {
                 preserveScroll: true,
                 preserveState: true,
-                onSuccess: refresh,
+                only,
             },
         );
     };
@@ -53,7 +66,7 @@ export function CartDrawer() {
         router.delete(cartDestroy.url({ item: id }), {
             preserveScroll: true,
             preserveState: true,
-            onSuccess: refresh,
+            only,
         });
     };
 
