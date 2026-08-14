@@ -420,7 +420,7 @@ it('places the order and hands the customer their confirmation', function (): vo
     basketLine($vendor, 4000, 2);
 
     $this->actingAs($this->customer)
-        ->post(route('checkout.store'), ['address_id' => $this->address->uuid])
+        ->post(route('checkout.store'), ['address_id' => $this->address->uuid, 'expected_total' => 9000])
         ->assertRedirect();
 
     $order = Order::query()->sole();
@@ -455,6 +455,7 @@ it('places an order with a coupon on it', function (): void {
         ->post(route('checkout.store'), [
             'address_id' => $this->address->uuid,
             'coupon_code' => $coupon->code,
+            'expected_total' => 9000,
         ])
         ->assertRedirect();
 
@@ -468,11 +469,94 @@ it('refuses to place an order that is not placeable', function (): void {
 
     $this->actingAs($this->customer)
         ->from(route('checkout.index'))
-        ->post(route('checkout.store'), ['address_id' => $this->address->uuid])
+        ->post(route('checkout.store'), ['address_id' => $this->address->uuid, 'expected_total' => 5000])
         ->assertRedirect(route('checkout.index'));
 
     expect(Order::query()->count())->toBe(0)
         ->and(CartItem::query()->count())->toBe(1);
+});
+
+/**
+ * A price that moved between rendering the screen and submitting it stops the order.
+ *
+ * PriceChanged is deliberately not a blocking problem: cart_items.unit_price is only a
+ * display snapshot and nothing ever refreshes it, so blocking on one would wedge the
+ * customer with no way through but emptying their basket. The screen posts the total it
+ * showed instead, and a re-quote that disagrees sends them back to the new figure.
+ */
+it('refuses to place an order at a total the customer was never shown', function (): void {
+    $vendor = shopDeliveringToTestAddress(0);
+    $product = basketLine($vendor, 10000);
+
+    $product->update(['price' => 12000]);
+
+    $this->actingAs($this->customer)
+        ->from(route('checkout.index'))
+        ->post(route('checkout.store'), [
+            'address_id' => $this->address->uuid,
+            'expected_total' => 10000,
+        ])
+        ->assertRedirect(route('checkout.index'));
+
+    expect(Order::query()->count())->toBe(0)
+        ->and(CartItem::query()->count())->toBe(1);
+});
+
+it('places the order once the customer confirms the new total', function (): void {
+    $vendor = shopDeliveringToTestAddress(0);
+    $product = basketLine($vendor, 10000);
+
+    $product->update(['price' => 12000]);
+
+    $this->actingAs($this->customer)
+        ->post(route('checkout.store'), [
+            'address_id' => $this->address->uuid,
+            'expected_total' => 12000,
+        ])
+        ->assertRedirect();
+
+    expect(Order::query()->sole()->total)->toBe(12000);
+});
+
+/**
+ * A coupon that lapsed mid-checkout is the same problem wearing a different hat: the
+ * discount silently drops to zero and no problem is recorded at all, so the total is
+ * the only thing that gives it away.
+ */
+it('refuses to place an order whose coupon lapsed while the customer was deciding', function (): void {
+    $vendor = shopDeliveringToTestAddress(0);
+    basketLine($vendor, 10000);
+
+    $coupon = Coupon::factory()->create([
+        'code' => 'LAPSING',
+        'value' => 10,
+        'usage_limit' => 1,
+        'used_count' => 0,
+    ]);
+
+    $coupon->update(['used_count' => 1]);
+
+    $this->actingAs($this->customer)
+        ->from(route('checkout.index'))
+        ->post(route('checkout.store'), [
+            'address_id' => $this->address->uuid,
+            'coupon_code' => $coupon->code,
+            'expected_total' => 9000,
+        ])
+        ->assertRedirect(route('checkout.index'));
+
+    expect(Order::query()->count())->toBe(0);
+});
+
+it('refuses to place an order that agrees to no total at all', function (): void {
+    $vendor = shopDeliveringToTestAddress(0);
+    basketLine($vendor, 5000);
+
+    $this->actingAs($this->customer)
+        ->post(route('checkout.store'), ['address_id' => $this->address->uuid])
+        ->assertSessionHasErrors('expected_total');
+
+    expect(Order::query()->count())->toBe(0);
 });
 
 it('refuses to place an order against somebody else address', function (): void {
@@ -482,7 +566,7 @@ it('refuses to place an order against somebody else address', function (): void 
     $stranger = Address::factory()->create();
 
     $this->actingAs($this->customer)
-        ->post(route('checkout.store'), ['address_id' => $stranger->uuid])
+        ->post(route('checkout.store'), ['address_id' => $stranger->uuid, 'expected_total' => 5000])
         ->assertSessionHasErrors('address_id');
 });
 
