@@ -12,6 +12,7 @@ use App\Models\VendorDeliveryArea;
 use App\Models\VendorOrder;
 use App\Support\Cast;
 use Illuminate\Support\Facades\Config;
+use stdClass;
 
 /**
  * The headline numbers for a vendor's own shop.
@@ -40,54 +41,22 @@ final readonly class BuildVendorDashboard
      */
     public function handle(Vendor $vendor): array
     {
-        $monthStart = now()->startOfMonth();
-        $monthEnd = now()->endOfMonth();
-
-        $thisMonth = VendorOrder::query()
-            ->where('vendor_id', $vendor->id)
-            ->where('status', OrderStatus::Delivered)
-            ->whereBetween('delivered_at', [$monthStart, $monthEnd])
-            ->toBase()
-            ->selectRaw('COUNT(*) as order_count, COALESCE(SUM(total), 0) as collected')
-            ->first();
+        $orders = $this->orderCounts($vendor);
+        $catalog = $this->catalogCounts($vendor);
 
         return [
             // Everything the vendor still has to do something about: accept it, pack it
             // or deliver it.
-            'orders_needing_action' => VendorOrder::query()
-                ->where('vendor_id', $vendor->id)
-                ->whereIn('status', [OrderStatus::Pending, OrderStatus::Confirmed, OrderStatus::Processing])
-                ->count(),
+            'orders_needing_action' => Cast::int($orders?->needing_action),
+            'orders_in_delivery' => Cast::int($orders?->in_delivery),
 
-            'orders_in_delivery' => VendorOrder::query()
-                ->where('vendor_id', $vendor->id)
-                ->where('status', OrderStatus::Shipped)
-                ->count(),
+            'low_stock_count' => Cast::int($catalog?->low_stock),
+            'out_of_stock_count' => Cast::int($catalog?->out_of_stock),
+            'published_count' => Cast::int($catalog?->published),
+            'draft_count' => Cast::int($catalog?->draft),
 
-            'low_stock_count' => Product::query()
-                ->where('vendor_id', $vendor->id)
-                ->where('status', '!=', ProductStatus::Archived)
-                ->whereColumn('stock_quantity', '<=', 'low_stock_threshold')
-                ->count(),
-
-            'out_of_stock_count' => Product::query()
-                ->where('vendor_id', $vendor->id)
-                ->where('status', '!=', ProductStatus::Archived)
-                ->where('stock_quantity', 0)
-                ->count(),
-
-            'published_count' => Product::query()
-                ->where('vendor_id', $vendor->id)
-                ->where('status', ProductStatus::Published)
-                ->count(),
-
-            'draft_count' => Product::query()
-                ->where('vendor_id', $vendor->id)
-                ->where('status', ProductStatus::Draft)
-                ->count(),
-
-            'cash_collected_this_month' => Cast::int($thisMonth?->collected),
-            'delivered_this_month' => Cast::int($thisMonth?->order_count),
+            'cash_collected_this_month' => Cast::int($orders?->collected),
+            'delivered_this_month' => Cast::int($orders?->delivered),
 
             // A vendor with no active coverage cannot be ordered from at all, however
             // much they have published, so the dashboard has to be able to say so.
@@ -98,5 +67,77 @@ final readonly class BuildVendorDashboard
 
             'currency' => Config::string('marketplace.currency'),
         ];
+    }
+
+    /**
+     * Every vendor_orders figure on the dashboard, in one pass.
+     *
+     * These were six separate COUNT queries over two tables. Each one re-scanned the
+     * same vendor's rows to answer a different question about them, and the six round
+     * trips were serial — the dashboard could not render until the last one returned.
+     * Conditional aggregation asks all of them at once, so the work is one pass per
+     * table rather than one per number.
+     */
+    private function orderCounts(Vendor $vendor): ?stdClass
+    {
+        return VendorOrder::query()
+            ->where('vendor_id', $vendor->id)
+            ->toBase()
+            ->selectRaw(
+                <<<'SQL'
+                    COUNT(CASE WHEN status IN (?, ?, ?) THEN 1 END) as needing_action,
+                    COUNT(CASE WHEN status = ? THEN 1 END) as in_delivery,
+                    COUNT(CASE WHEN status = ? AND delivered_at BETWEEN ? AND ? THEN 1 END) as delivered,
+                    COALESCE(SUM(CASE WHEN status = ? AND delivered_at BETWEEN ? AND ? THEN total END), 0) as collected
+                    SQL,
+                [
+                    OrderStatus::Pending->value,
+                    OrderStatus::Confirmed->value,
+                    OrderStatus::Processing->value,
+                    OrderStatus::Shipped->value,
+                    OrderStatus::Delivered->value,
+                    $this->monthStart(),
+                    $this->monthEnd(),
+                    OrderStatus::Delivered->value,
+                    $this->monthStart(),
+                    $this->monthEnd(),
+                ],
+            )
+            ->first();
+    }
+
+    /**
+     * Every products figure on the dashboard, in one pass.
+     */
+    private function catalogCounts(Vendor $vendor): ?stdClass
+    {
+        return Product::query()
+            ->where('vendor_id', $vendor->id)
+            ->toBase()
+            ->selectRaw(
+                <<<'SQL'
+                    COUNT(CASE WHEN status <> ? AND stock_quantity <= low_stock_threshold THEN 1 END) as low_stock,
+                    COUNT(CASE WHEN status <> ? AND stock_quantity = 0 THEN 1 END) as out_of_stock,
+                    COUNT(CASE WHEN status = ? THEN 1 END) as published,
+                    COUNT(CASE WHEN status = ? THEN 1 END) as draft
+                    SQL,
+                [
+                    ProductStatus::Archived->value,
+                    ProductStatus::Archived->value,
+                    ProductStatus::Published->value,
+                    ProductStatus::Draft->value,
+                ],
+            )
+            ->first();
+    }
+
+    private function monthStart(): string
+    {
+        return now()->startOfMonth()->toDateTimeString();
+    }
+
+    private function monthEnd(): string
+    {
+        return now()->endOfMonth()->toDateTimeString();
     }
 }

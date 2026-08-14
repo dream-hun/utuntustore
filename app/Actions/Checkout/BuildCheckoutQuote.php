@@ -16,7 +16,6 @@ use App\Support\Checkout\CheckoutLine;
 use App\Support\Checkout\CheckoutProblem;
 use App\Support\Checkout\CheckoutQuote;
 use App\Support\Checkout\VendorQuote;
-use App\Support\Money;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
 
@@ -215,16 +214,13 @@ final readonly class BuildCheckoutQuote
             return $vendorQuotes;
         }
 
-        $eligible = array_values(array_filter(
-            $vendorQuotes,
-            static fn (VendorQuote $quote): bool => $coupon->vendor_id === null
-                || $coupon->vendor_id === $quote->vendor->id,
-        ));
+        $eligibleSubtotal = 0;
 
-        $eligibleSubtotal = array_sum(array_map(
-            static fn (VendorQuote $quote): int => $quote->subtotal,
-            $eligible,
-        ));
+        foreach ($vendorQuotes as $quote) {
+            if ($this->couponAppliesTo($coupon, $quote)) {
+                $eligibleSubtotal += $quote->subtotal;
+            }
+        }
 
         // Unreachable from handle(): CalculateCouponDiscount computes the eligible
         // subtotal the same way and returns 0 when it is empty, so a discount above
@@ -236,33 +232,10 @@ final readonly class BuildCheckoutQuote
             // @codeCoverageIgnoreEnd
         }
 
-        $allocated = 0;
-        $lastEligibleIndex = null;
+        $shares = $this->apportionDiscount($vendorQuotes, $coupon, $discount, $eligibleSubtotal);
 
-        foreach ($vendorQuotes as $index => $quote) {
-            $applies = $coupon->vendor_id === null || $coupon->vendor_id === $quote->vendor->id;
-
-            if ($applies && $quote->subtotal > 0) {
-                $lastEligibleIndex = $index;
-            }
-        }
-
-        foreach ($vendorQuotes as $index => $quote) {
-            $applies = $coupon->vendor_id === null || $coupon->vendor_id === $quote->vendor->id;
-            if (! $applies) {
-                continue;
-            }
-
-            if ($quote->subtotal <= 0) {
-                continue;
-            }
-
-            $share = $index === $lastEligibleIndex
-                ? $discount - $allocated
-                : intdiv($discount * $quote->subtotal, $eligibleSubtotal);
-
-            $share = Money::clamp($share, 0, $quote->subtotal);
-            $allocated += $share;
+        foreach ($shares as $index => $share) {
+            $quote = $vendorQuotes[$index];
 
             $vendorQuotes[$index] = new VendorQuote(
                 vendor: $quote->vendor,
@@ -277,5 +250,73 @@ final readonly class BuildCheckoutQuote
         }
 
         return $vendorQuotes;
+    }
+
+    /**
+     * Split a discount across the shops funding it, to the exact franc.
+     *
+     * Largest-remainder apportionment: give every shop the whole-franc part of its
+     * proportional share, then hand the francs lost to rounding — at most one per shop —
+     * to whichever shops were rounded down hardest.
+     *
+     * The leftover is spread rather than dumped on one shop because no single shop is
+     * guaranteed to have room for it. The cheapest shop in a basket can be owed less
+     * than the accumulated rounding when a coupon covers nearly the whole order, and
+     * capping its share there would quietly destroy the difference, leaving the order
+     * discounted by more than the shops gave up. Spreading always fits: the shops'
+     * combined room is the eligible subtotal, which is never less than the discount.
+     *
+     * @param  array<int, VendorQuote>  $vendorQuotes
+     * @return array<int, int> Discount per vendor quote, keyed by its index.
+     */
+    private function apportionDiscount(array $vendorQuotes, Coupon $coupon, int $discount, int $eligibleSubtotal): array
+    {
+        $shares = [];
+        $remainders = [];
+        $allocated = 0;
+
+        foreach ($vendorQuotes as $index => $quote) {
+            if (! $this->couponAppliesTo($coupon, $quote) || $quote->subtotal <= 0) {
+                continue;
+            }
+
+            $exact = $discount * $quote->subtotal;
+
+            $shares[$index] = intdiv($exact, $eligibleSubtotal);
+            $remainders[$index] = $exact % $eligibleSubtotal;
+            $allocated += $shares[$index];
+        }
+
+        // Hardest-rounded first, then lowest index, so an identical basket always
+        // splits identically — vendor takings have to be reproducible.
+        $byRemainder = array_keys($remainders);
+
+        usort(
+            $byRemainder,
+            static fn (int $a, int $b): int => [$remainders[$b], $a] <=> [$remainders[$a], $b],
+        );
+
+        $leftover = $discount - $allocated;
+
+        foreach ($byRemainder as $index) {
+            if ($leftover <= 0) {
+                break;
+            }
+
+            $franc = min($vendorQuotes[$index]->subtotal - $shares[$index], $leftover);
+
+            $shares[$index] += $franc;
+            $leftover -= $franc;
+        }
+
+        return $shares;
+    }
+
+    /**
+     * A vendor-scoped coupon funds only its own shop; an unscoped one funds them all.
+     */
+    private function couponAppliesTo(Coupon $coupon, VendorQuote $quote): bool
+    {
+        return $coupon->vendor_id === null || $coupon->vendor_id === $quote->vendor->id;
     }
 }

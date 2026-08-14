@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Storefront;
 
+use App\Enums\ProductStatus;
 use App\Enums\ReviewStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Storefront\Concerns\PresentsCatalog;
@@ -29,17 +30,19 @@ final class ProductController extends Controller
 
     public function __invoke(Product $product): Response
     {
-        abort_unless(
-            Product::query()->sellable()->whereKey($product->getKey())->exists(),
-            404,
-        );
-
+        // The vendor is loaded rather than queried around: this page needs it anyway
+        // for the shop card, and its own eligibility is the second half of the
+        // sellable rule. Asking the database `sellable()->exists()` first — as this
+        // used to — spent a whole extra round trip, on the most-viewed page there is,
+        // re-deriving something the loaded rows already answer.
         $product->load([
             'vendor.media',
             'category',
             'media',
             'variants' => fn (HasMany $query): HasMany => $query->where('is_active', true)->orderBy('name'),
         ]);
+
+        abort_unless($this->isSellable($product), 404);
 
         /** @var Closure(): HasMany<Review, Product> $approvedReviews */
         $approvedReviews = fn (): HasMany => $product->reviews()
@@ -115,6 +118,22 @@ final class ProductController extends Controller
                     'created_at' => $review->created_at,
                 ])),
         ]);
+    }
+
+    /**
+     * The in-memory twin of {@see Product::scopeSellable()}: published, and owned by a
+     * vendor still eligible to sell.
+     *
+     * These two must stay in agreement — change the scope, change this. The same
+     * pairing already exists for coupons (isRedeemable / scopeRedeemable) and for
+     * publication in BuildCheckoutQuote::isPurchasable().
+     */
+    private function isSellable(Product $product): bool
+    {
+        return $product->status === ProductStatus::Published
+            && $product->published_at !== null
+            && $product->published_at->isPast()
+            && $product->vendor->canSell();
     }
 
     /**
