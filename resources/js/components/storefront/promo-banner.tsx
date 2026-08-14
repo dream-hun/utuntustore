@@ -1,66 +1,102 @@
 import { Link } from '@inertiajs/react';
-import { ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+type PromoVariant = 'primary' | 'ink' | 'cream' | 'aqua';
 
 interface PromoBannerProps {
     title: string;
+    /** Small tracked label above the title. */
+    eyebrow?: string;
     description?: string;
     ctaLabel?: string;
     ctaHref?: string;
-    variant?: 'primary' | 'accent' | 'muted';
+    /** Decorative image tucked into the right of the panel. */
+    image?: string;
+    variant?: PromoVariant;
     className?: string;
 }
 
-const variantStyles = {
-    primary:
-        'bg-gradient-to-r from-primary to-primary/80 text-primary-foreground',
-    accent: 'bg-gradient-to-r from-amber-500 to-orange-500 text-white',
-    muted: 'bg-gradient-to-r from-muted to-muted/60 text-foreground border border-border',
+const panelStyles: Record<PromoVariant, string> = {
+    primary: 'bg-primary text-primary-foreground',
+    ink: 'bg-ink text-white',
+    cream: 'bg-cream text-foreground',
+    aqua: 'bg-aqua-soft text-foreground',
+};
+
+/** On dark panels the CTA inverts; on light ones it takes the primary fill. */
+const ctaStyles: Record<PromoVariant, string> = {
+    primary: 'bg-background text-foreground',
+    ink: 'bg-primary text-primary-foreground',
+    cream: 'bg-primary text-primary-foreground',
+    aqua: 'bg-primary text-primary-foreground',
 };
 
 /**
- * Full-width promotional banner strip.
- * Used between sections on the home page to surface deals or announcements.
+ * The large rounded promo panel the storefront breaks its product grids with.
+ * Used between sections on the home page to surface offers or explain how
+ * ordering from several shops at once works.
  */
 export function PromoBanner({
     title,
+    eyebrow,
     description,
     ctaLabel = 'Shop now',
     ctaHref,
+    image,
     variant = 'primary',
     className,
 }: PromoBannerProps) {
-    const content = (
-        <div
+    return (
+        <article
             className={cn(
-                'flex flex-col items-start justify-between gap-4 rounded-2xl px-6 py-8 sm:flex-row sm:items-center sm:px-10',
-                variantStyles[variant],
+                'relative overflow-hidden rounded-3xl p-7 sm:p-10',
+                panelStyles[variant],
                 className,
             )}
         >
-            <div className="min-w-0 space-y-1">
-                <p className="text-xl font-semibold sm:text-2xl">{title}</p>
+            <div className="relative z-10 max-w-sm">
+                {eyebrow ? (
+                    <span className="eyebrow opacity-75">{eyebrow}</span>
+                ) : null}
+
+                <h3 className="mt-3 text-2xl leading-tight sm:text-3xl">
+                    {title}
+                </h3>
+
                 {description ? (
-                    <p className="text-sm opacity-90">{description}</p>
+                    <p
+                        className={cn(
+                            'mt-3 text-sm leading-6',
+                            variant === 'cream' || variant === 'aqua'
+                                ? 'text-muted-foreground'
+                                : 'opacity-80',
+                        )}
+                    >
+                        {description}
+                    </p>
+                ) : null}
+
+                {ctaHref ? (
+                    <Link
+                        href={ctaHref}
+                        className={cn(
+                            'mt-6 inline-flex rounded-full px-5 py-2.5 text-sm font-semibold transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+                            ctaStyles[variant],
+                        )}
+                    >
+                        {ctaLabel}
+                    </Link>
                 ) : null}
             </div>
 
-            {ctaHref ? (
-                <Link
-                    href={ctaHref}
-                    className={cn(
-                        'inline-flex shrink-0 items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
-                        variant === 'muted'
-                            ? 'bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-primary'
-                            : 'bg-white/20 text-inherit hover:bg-white/30 focus-visible:ring-white',
-                    )}
-                >
-                    {ctaLabel}
-                    <ArrowRight className="size-4" aria-hidden="true" />
-                </Link>
+            {image ? (
+                <img
+                    src={image}
+                    alt=""
+                    loading="lazy"
+                    className="pointer-events-none absolute inset-y-0 right-0 hidden w-2/5 object-cover opacity-70 sm:block"
+                />
             ) : null}
-        </div>
+        </article>
     );
-
-    return content;
 }

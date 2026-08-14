@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Tests\TestCase;
 
 /*
@@ -44,7 +46,23 @@ expect()->extend('toBeOne', fn () => $this->toBe(1));
 |
 */
 
-function something(): void
+/**
+ * Headers that turn a normal GET into the partial reload Inertia sends when it
+ * fetches deferred props, so the closures behind `Inertia::defer()` actually run.
+ *
+ * @param  array<int, string>  $only  Prop names to request.
+ * @return array<string, string>
+ */
+function inertiaPartial(string $component, array $only): array
 {
-    // ..
+    // The asset version is derived per request by HandleInertiaRequests, so it has to
+    // be asked for the same way rather than read off the (still unset) facade.
+    $version = app(HandleInertiaRequests::class)->version(Request::create('/'));
+
+    return [
+        'X-Inertia' => 'true',
+        'X-Inertia-Version' => $version ?? '',
+        'X-Inertia-Partial-Component' => $component,
+        'X-Inertia-Partial-Data' => implode(',', $only),
+    ];
 }

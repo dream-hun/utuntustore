@@ -4,8 +4,13 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Actions\Cart\BuildCartPreview;
+use App\Models\Cart;
+use App\Models\User;
 use App\Models\Vendor;
+use App\Support\Cast;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 use Inertia\Middleware;
 
 final class HandleInertiaRequests extends Middleware
@@ -56,13 +61,17 @@ final class HandleInertiaRequests extends Middleware
                 // Only a vendor has a shop, and the overwhelming majority of signed-in
                 // traffic is customers. Asking the role first — already loaded on the
                 // user row — keeps a vendor lookup off every one of their requests.
-                'vendor' => $user?->isVendor() === true
-                    ? $this->vendorProps($user->vendor)
-                    : null,
+                'vendor' => $user?->isVendor() === true ? $this->vendorProps($user->vendor) : null,
             ],
 
             // Resolved lazily so the count query only runs on the pages that read it.
             'cartCount' => fn (): int => $this->cartCount($request),
+
+            // Optional, so the basket is only assembled when the cart drawer actually
+            // asks for it rather than on every page load that never opens the drawer.
+            'cartPreview' => Inertia::optional(
+                fn (): array => app(BuildCartPreview::class)->handle($this->currentCart($request)),
+            ),
 
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
@@ -96,12 +105,37 @@ final class HandleInertiaRequests extends Middleware
 
     private function cartCount(Request $request): int
     {
-        $cart = $request->user()?->cart;
+        $cart = $this->currentCart($request);
 
-        if ($cart === null) {
+        if (! $cart instanceof Cart) {
             return 0;
         }
 
-        return (int) $cart->items()->sum('quantity');
+        return Cast::int($cart->items()->sum('quantity'));
+    }
+
+    /**
+     * The visitor's existing cart, if they have one.
+     *
+     * Guests shop against a session-keyed cart, so reading only the user relation left
+     * the header badge stuck on zero for everyone who had not signed in — the majority
+     * of people filling a basket.
+     *
+     * This is a lookup rather than a call to ResolveCart on purpose: it runs on every
+     * request, and firstOrCreate would leave a cart row behind for every visitor who
+     * never adds anything, including ones who only ever see an admin screen.
+     */
+    private function currentCart(Request $request): ?Cart
+    {
+        $user = $request->user();
+
+        if ($user instanceof User) {
+            return $user->cart;
+        }
+
+        return Cart::query()
+            ->whereNull('user_id')
+            ->where('session_id', $request->session()->getId())
+            ->first();
     }
 }

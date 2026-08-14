@@ -42,7 +42,7 @@ export function RatingStars({
                         className={cn(
                             sizeMap[size],
                             value <= rounded
-                                ? 'fill-amber-400 text-amber-400'
+                                ? 'fill-gold text-gold'
                                 : 'fill-muted text-muted-foreground/30',
                         )}
                     />

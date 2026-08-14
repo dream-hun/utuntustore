@@ -160,3 +160,38 @@ it('lets a guest browse the storefront without an account', function (): void {
 it('sends a guest to login when they try to check out', function (): void {
     $this->get(route('checkout.index'))->assertRedirect(route('login'));
 });
+
+/**
+ * The header's category row is shared by every browsing screen, so each of them has
+ * to supply it. A nav that appears on the home page and vanishes on a product page
+ * reads as a bug, and it is the kind of regression nothing else would catch.
+ */
+it('gives every browsing screen the categories its header nav is built from', function (): void {
+    $product = Product::factory()
+        ->for($this->sellable)
+        ->for($this->category)
+        ->published()
+        ->create();
+
+    $screens = [
+        'storefront/category' => route('categories.show', $this->category),
+        'storefront/product' => route('products.show', $product),
+        'storefront/vendor' => route('vendors.show', $this->sellable),
+    ];
+
+    foreach ($screens as $component => $url) {
+        $this->get($url, inertiaPartial($component, ['navCategories']))
+            ->assertOk()
+            ->assertJsonCount(1, 'props.navCategories')
+            ->assertJsonPath('props.navCategories.0.slug', $this->category->slug);
+    }
+});
+
+it('leaves an inactive category out of the header nav', function (): void {
+    Category::factory()->create(['is_active' => false]);
+
+    $this->get(route('home'), inertiaPartial('storefront/home', ['categories']))
+        ->assertOk()
+        ->assertJsonCount(1, 'props.categories')
+        ->assertJsonPath('props.categories.0.slug', $this->category->slug);
+});

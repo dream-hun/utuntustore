@@ -1,30 +1,32 @@
 import { Deferred, Head, Link, useForm } from '@inertiajs/react';
 import {
-    ChevronLeft,
+    Banknote,
     ImageOff,
     MessageSquare,
+    Minus,
     Package,
+    Plus,
     Store,
     Truck,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Money } from '@/components/money';
+import { ProductGrid } from '@/components/storefront/product-card';
+import type { StorefrontProduct } from '@/components/storefront/product-card';
+import { ProductGridSkeleton } from '@/components/storefront/product-card-skeleton';
 import { RatingStars } from '@/components/storefront/rating-stars';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
+import { SectionHeader } from '@/components/storefront/section-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
+import { openCartDrawer } from '@/hooks/use-cart-drawer';
 import StorefrontLayout from '@/layouts/storefront-layout';
 import { formatDate } from '@/lib/format';
-import { shop } from '@/routes';
+import { cn } from '@/lib/utils';
+import { home, shop } from '@/routes';
 import { store as cartStore } from '@/routes/cart';
 import { show as categoryShow } from '@/routes/categories';
 import { show as vendorShow } from '@/routes/vendors';
-import type { Paginated } from '@/types/marketplace';
+import type { Paginated, StorefrontCategoryLink } from '@/types/marketplace';
 
 interface Variant {
     id: string;
@@ -73,6 +75,8 @@ export default function ProductPage({
     vendor,
     rating,
     reviews,
+    related,
+    navCategories,
 }: {
     product: ProductDetail;
     vendor: {
@@ -86,6 +90,8 @@ export default function ProductPage({
     };
     rating: { average: number; count: number };
     reviews?: Paginated<ReviewRow>;
+    related?: StorefrontProduct[];
+    navCategories?: StorefrontCategoryLink[];
 }) {
     const [activeImage, setActiveImage] = useState<string | null>(
         product.images[0]?.web_url ?? product.primary_image_url,
@@ -117,446 +123,505 @@ export default function ProductPage({
         quantity: 1,
     });
 
+    const setQuantity = (quantity: number) => {
+        form.setData(
+            'quantity',
+            Math.min(Math.max(quantity, 1), Math.max(stock, 1)),
+        );
+    };
+
     const addToCart = (event: React.FormEvent) => {
         event.preventDefault();
         form.transform((data) => ({ ...data, variant: variantId }));
-        form.post(cartStore.url(), { preserveScroll: true });
+        form.post(cartStore.url(), {
+            preserveScroll: true,
+            preserveState: true,
+            // Show what just landed in the bag rather than leaving the customer to
+            // work out whether the click registered.
+            onSuccess: openCartDrawer,
+        });
     };
 
+    const canOrder = stock > 0 && vendor.can_sell;
+
     return (
-        <StorefrontLayout>
+        <StorefrontLayout
+            categories={navCategories}
+            activeCategorySlug={product.category.slug}
+        >
             <Head title={product.name} />
 
-            <div className="mx-auto w-full max-w-[1400px] px-4 py-8 sm:px-6 lg:px-8">
+            <div className="mx-auto w-full max-w-[1400px] px-4 py-8 lg:px-8">
                 {/* Breadcrumb */}
                 <nav
                     aria-label="Breadcrumb"
-                    className="mb-6 flex items-center gap-1.5 text-sm text-muted-foreground"
+                    className="text-sm font-semibold text-muted-foreground"
                 >
-                    <Link
-                        href={shop.url()}
-                        className="inline-flex items-center gap-1 transition-colors hover:text-foreground"
-                    >
-                        <ChevronLeft className="size-4" aria-hidden="true" />
+                    <Link href={home.url()} className="hover:text-primary">
+                        Home
+                    </Link>
+                    <span className="mx-2" aria-hidden="true">
+                        /
+                    </span>
+                    <Link href={shop.url()} className="hover:text-primary">
                         Shop
                     </Link>
-                    <span aria-hidden="true">/</span>
+                    <span className="mx-2" aria-hidden="true">
+                        /
+                    </span>
                     <Link
                         href={categoryShow.url({
                             category: product.category.slug,
                         })}
-                        className="transition-colors hover:text-foreground"
+                        className="hover:text-primary"
                     >
                         {product.category.name}
                     </Link>
-                    <span aria-hidden="true">/</span>
-                    <span
-                        className="max-w-[200px] truncate font-medium text-foreground"
-                        aria-current="page"
-                    >
+                    <span className="mx-2" aria-hidden="true">
+                        /
+                    </span>
+                    <span className="text-foreground" aria-current="page">
                         {product.name}
                     </span>
                 </nav>
+            </div>
 
-                {/* Main product area */}
-                <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
-                    {/* Left — Image gallery */}
-                    <div className="space-y-3">
-                        <div className="relative aspect-[4/5] w-full overflow-hidden rounded-3xl bg-[#f1f7f6]">
-                            {activeImage ? (
-                                <img
-                                    src={activeImage}
-                                    alt={product.name}
-                                    className="size-full object-cover"
-                                />
-                            ) : (
-                                <div className="flex size-full items-center justify-center text-muted-foreground">
-                                    <ImageOff
-                                        className="size-12"
-                                        aria-hidden="true"
-                                    />
-                                </div>
-                            )}
+            <div className="mx-auto grid w-full max-w-[1400px] gap-12 px-4 lg:grid-cols-2 lg:gap-20 lg:px-8">
+                {/* ─── Gallery ───────────────────────────────────────────── */}
+                <div
+                    className={cn(
+                        'grid gap-4',
+                        product.images.length > 1
+                            ? 'grid-cols-[80px_minmax(0,1fr)]'
+                            : 'grid-cols-1',
+                    )}
+                >
+                    {product.images.length > 1 ? (
+                        <div
+                            className="flex flex-col gap-3"
+                            role="group"
+                            aria-label="Product images"
+                        >
+                            {product.images.map((image, index) => {
+                                const isActive = activeImage === image.web_url;
 
-                            {/* Sale ribbon */}
-                            {isOnSale ? (
-                                <div className="absolute top-4 left-4">
-                                    <Badge className="border-rose-500/20 bg-rose-500 px-2.5 py-1 text-sm text-white">
-                                        -{discountPct}% OFF
-                                    </Badge>
-                                </div>
-                            ) : null}
+                                return (
+                                    <button
+                                        key={image.id}
+                                        type="button"
+                                        onClick={() =>
+                                            setActiveImage(image.web_url)
+                                        }
+                                        aria-label={
+                                            image.alt ??
+                                            `View image ${index + 1}`
+                                        }
+                                        aria-pressed={isActive}
+                                        className={cn(
+                                            'aspect-square overflow-hidden rounded-2xl bg-cream transition focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+                                            isActive
+                                                ? 'ring-1 ring-foreground'
+                                                : 'opacity-70 hover:opacity-100',
+                                        )}
+                                    >
+                                        <img
+                                            src={image.thumb_url}
+                                            alt=""
+                                            className="size-full object-cover"
+                                        />
+                                    </button>
+                                );
+                            })}
                         </div>
+                    ) : null}
 
-                        {/* Thumbnail strip */}
-                        {product.images.length > 1 ? (
+                    <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-cream">
+                        {activeImage ? (
+                            <img
+                                src={activeImage}
+                                alt={product.name}
+                                className="size-full object-cover"
+                            />
+                        ) : (
+                            <div className="flex size-full items-center justify-center text-muted-foreground">
+                                <ImageOff
+                                    className="size-12"
+                                    aria-hidden="true"
+                                />
+                            </div>
+                        )}
+
+                        {isOnSale ? (
+                            <span className="absolute top-4 left-4 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
+                                −{discountPct}%
+                            </span>
+                        ) : null}
+                    </div>
+                </div>
+
+                {/* ─── Details ───────────────────────────────────────────── */}
+                <div className="lg:pt-8">
+                    <Link
+                        href={categoryShow.url({
+                            category: product.category.slug,
+                        })}
+                        className="eyebrow text-primary hover:opacity-80"
+                    >
+                        {product.category.name}
+                    </Link>
+
+                    <h1 className="mt-3 text-3xl leading-none md:text-4xl">
+                        {product.name}
+                    </h1>
+
+                    {rating.count > 0 ? (
+                        <RatingStars
+                            rating={rating.average}
+                            count={rating.count}
+                            size="md"
+                            className="mt-3"
+                        />
+                    ) : null}
+
+                    <div className="mt-4 flex flex-wrap items-baseline gap-3">
+                        <Money
+                            amount={price}
+                            currency={product.currency}
+                            className="font-heading text-2xl"
+                        />
+                        {isOnSale ? (
+                            <Money
+                                amount={product.compare_at_price!}
+                                currency={product.currency}
+                                className="text-muted-foreground line-through"
+                            />
+                        ) : null}
+                    </div>
+
+                    {product.short_description ? (
+                        <p className="mt-8 leading-relaxed text-muted-foreground">
+                            {product.short_description}
+                        </p>
+                    ) : null}
+
+                    {/* Variants */}
+                    {product.variants.length > 0 ? (
+                        <div className="mt-8">
+                            <p className="mb-3 eyebrow text-muted-foreground">
+                                Option
+                            </p>
                             <div
-                                className="flex gap-2 overflow-x-auto pb-1"
+                                className="flex flex-wrap gap-2"
                                 role="group"
-                                aria-label="Product images"
+                                aria-label="Product options"
                             >
-                                {product.images.map((image) => {
-                                    const isActive =
-                                        activeImage === image.web_url;
+                                {product.variants.map((variant) => {
+                                    const isSelected = variantId === variant.id;
+                                    const isOos = variant.stock_quantity < 1;
 
                                     return (
                                         <button
-                                            key={image.id}
+                                            key={variant.id}
                                             type="button"
+                                            disabled={isOos}
+                                            aria-pressed={isSelected}
                                             onClick={() =>
-                                                setActiveImage(image.web_url)
+                                                setVariantId(variant.id)
                                             }
-                                            aria-label={
-                                                image.alt ??
-                                                `View image ${product.images.indexOf(image) + 1}`
-                                            }
-                                            aria-pressed={isActive}
-                                            className={
-                                                'size-16 shrink-0 overflow-hidden rounded-lg border-2 transition-all focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none ' +
-                                                (isActive
-                                                    ? 'border-primary shadow-sm'
-                                                    : 'border-transparent opacity-70 hover:opacity-100')
-                                            }
+                                            className={cn(
+                                                'rounded-full border px-4 py-2 text-sm font-semibold transition focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+                                                isSelected
+                                                    ? 'border-primary bg-primary text-primary-foreground'
+                                                    : 'border-border bg-card hover:border-primary hover:bg-aqua-soft',
+                                                isOos
+                                                    ? 'cursor-not-allowed line-through opacity-40'
+                                                    : null,
+                                            )}
                                         >
-                                            <img
-                                                src={image.thumb_url}
-                                                alt={image.alt ?? product.name}
-                                                className="size-full object-cover"
-                                            />
+                                            {variant.name}
                                         </button>
                                     );
                                 })}
                             </div>
-                        ) : null}
-                    </div>
-
-                    {/* Right — Product info & actions */}
-                    <div className="space-y-5">
-                        {/* Category + name */}
-                        <div>
-                            <Link
-                                href={categoryShow.url({
-                                    category: product.category.slug,
-                                })}
-                                className="text-xs font-medium tracking-wider text-primary uppercase hover:underline"
-                            >
-                                {product.category.name}
-                            </Link>
-                            <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">
-                                {product.name}
-                            </h1>
-
-                            {rating.count > 0 ? (
-                                <div className="mt-2">
-                                    <RatingStars
-                                        rating={rating.average}
-                                        count={rating.count}
-                                        size="md"
-                                    />
-                                </div>
-                            ) : null}
                         </div>
+                    ) : null}
 
-                        {/* Pricing */}
-                        <div className="flex flex-wrap items-baseline gap-3">
-                            <Money
-                                amount={price}
-                                currency={product.currency}
-                                className="text-3xl font-bold"
-                            />
-                            {isOnSale ? (
-                                <>
-                                    <Money
-                                        amount={product.compare_at_price!}
-                                        currency={product.currency}
-                                        className="text-lg text-muted-foreground line-through"
-                                    />
-                                    <span className="rounded-md bg-rose-100 px-2 py-0.5 text-sm font-semibold text-rose-700 dark:bg-rose-900/30 dark:text-rose-400">
-                                        Save {discountPct}%
-                                    </span>
-                                </>
-                            ) : null}
-                        </div>
+                    {/* Stock */}
+                    <p className="mt-6 text-sm font-semibold">
+                        {stock < 1 ? (
+                            <span className="text-muted-foreground">
+                                Out of stock
+                            </span>
+                        ) : product.is_low_stock ? (
+                            <span className="text-gold">
+                                Only {stock} left — order soon
+                            </span>
+                        ) : (
+                            <span className="text-primary">In stock</span>
+                        )}
+                    </p>
 
-                        {/* Short description */}
-                        {product.short_description ? (
-                            <p className="leading-relaxed text-muted-foreground">
-                                {product.short_description}
-                            </p>
-                        ) : null}
-
-                        {/* Variants */}
-                        {product.variants.length > 0 ? (
-                            <div className="space-y-2">
-                                <Label className="text-sm font-semibold">
-                                    Option
-                                </Label>
-                                <div
-                                    className="flex flex-wrap gap-2"
-                                    role="group"
-                                    aria-label="Product options"
-                                >
-                                    {product.variants.map((variant) => {
-                                        const isSelected =
-                                            variantId === variant.id;
-                                        const isOos =
-                                            variant.stock_quantity < 1;
-
-                                        return (
-                                            <Button
-                                                key={variant.id}
-                                                type="button"
-                                                size="sm"
-                                                variant={
-                                                    isSelected
-                                                        ? 'default'
-                                                        : 'outline'
-                                                }
-                                                disabled={isOos}
-                                                aria-pressed={isSelected}
-                                                onClick={() =>
-                                                    setVariantId(variant.id)
-                                                }
-                                                className={
-                                                    isOos
-                                                        ? 'line-through opacity-40'
-                                                        : ''
-                                                }
-                                            >
-                                                {variant.name}
-                                            </Button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        ) : null}
-
-                        {/* Stock status */}
-                        <div>
-                            {stock < 1 ? (
-                                <Badge variant="secondary" className="text-sm">
-                                    Out of stock
-                                </Badge>
-                            ) : product.is_low_stock ? (
-                                <Badge className="border-amber-500/20 bg-amber-500/10 text-sm text-amber-700 dark:text-amber-300">
-                                    Only {stock} left — order soon
-                                </Badge>
-                            ) : (
-                                <Badge className="border-emerald-500/20 bg-emerald-500/10 text-sm text-emerald-700 dark:text-emerald-300">
-                                    In stock
-                                </Badge>
-                            )}
-                        </div>
-
-                        {/* Add to cart */}
-                        <form
-                            onSubmit={addToCart}
-                            className="flex items-center gap-3"
-                            aria-label="Add to cart"
-                        >
-                            <div className="space-y-1">
-                                <Label
-                                    htmlFor="quantity"
-                                    className="text-xs text-muted-foreground"
-                                >
-                                    Qty
-                                </Label>
-                                <Input
-                                    id="quantity"
-                                    type="number"
-                                    min={1}
-                                    max={Math.max(stock, 1)}
-                                    value={form.data.quantity}
-                                    onChange={(event) =>
-                                        form.setData(
-                                            'quantity',
-                                            Number(event.target.value),
-                                        )
-                                    }
-                                    className="w-20"
-                                    disabled={stock < 1 || !vendor.can_sell}
-                                />
-                            </div>
-                            <Button
-                                type="submit"
-                                size="lg"
-                                className="flex-1"
-                                disabled={
-                                    stock < 1 ||
-                                    !vendor.can_sell ||
-                                    form.processing
+                    {/* Add to cart */}
+                    <form
+                        onSubmit={addToCart}
+                        className="mt-6 flex items-center gap-4"
+                        aria-label="Add to cart"
+                    >
+                        <div className="flex items-center rounded-full border border-border">
+                            <button
+                                type="button"
+                                className="p-3 disabled:opacity-40"
+                                onClick={() =>
+                                    setQuantity(form.data.quantity - 1)
                                 }
+                                disabled={!canOrder || form.data.quantity <= 1}
+                                aria-label="Decrease quantity"
                             >
-                                {form.processing ? (
-                                    <Spinner className="mr-2" />
-                                ) : null}
-                                Add to cart
-                            </Button>
-                        </form>
+                                <Minus className="size-3" />
+                            </button>
+                            <span
+                                className="w-10 text-center text-sm tabular-nums"
+                                aria-live="polite"
+                            >
+                                {form.data.quantity}
+                            </span>
+                            <button
+                                type="button"
+                                className="p-3 disabled:opacity-40"
+                                onClick={() =>
+                                    setQuantity(form.data.quantity + 1)
+                                }
+                                disabled={
+                                    !canOrder || form.data.quantity >= stock
+                                }
+                                aria-label="Increase quantity"
+                            >
+                                <Plus className="size-3" />
+                            </button>
+                        </div>
 
-                        {!vendor.can_sell ? (
-                            <p className="rounded-lg bg-muted px-4 py-3 text-sm text-muted-foreground">
-                                This shop is not currently accepting orders.
-                            </p>
-                        ) : null}
+                        <button
+                            type="submit"
+                            disabled={!canOrder || form.processing}
+                            className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-primary py-4 text-sm font-semibold text-primary-foreground transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50"
+                        >
+                            {form.processing ? <Spinner /> : null}
+                            Add to bag —{' '}
+                            <Money
+                                amount={price * form.data.quantity}
+                                currency={product.currency}
+                            />
+                        </button>
+                    </form>
 
-                        <Separator />
+                    {!vendor.can_sell ? (
+                        <p className="mt-4 rounded-2xl bg-muted px-4 py-3 text-sm text-muted-foreground">
+                            This shop is not currently accepting orders.
+                        </p>
+                    ) : null}
 
-                        {/* Vendor card */}
-                        <Card className="border-muted">
-                            <CardContent className="flex items-start gap-4 py-4">
+                    {/* Shop */}
+                    <div className="mt-10 border-t border-border pt-8">
+                        <p className="mb-4 eyebrow text-muted-foreground">
+                            Sold and delivered by
+                        </p>
+                        <div className="flex items-start gap-4">
+                            <Link
+                                href={vendorShow.url({ vendor: vendor.slug })}
+                                aria-label={`Visit ${vendor.shop_name}`}
+                                className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-2xl bg-cream transition hover:ring-2 hover:ring-primary"
+                            >
+                                {vendor.logo_url ? (
+                                    <img
+                                        src={vendor.logo_url}
+                                        alt=""
+                                        className="size-full object-cover"
+                                    />
+                                ) : (
+                                    <Store className="size-5 text-muted-foreground" />
+                                )}
+                            </Link>
+                            <div className="min-w-0 flex-1">
                                 <Link
                                     href={vendorShow.url({
                                         vendor: vendor.slug,
                                     })}
-                                    aria-label={`Visit ${vendor.shop_name}`}
+                                    className="font-heading text-base transition-colors hover:text-primary"
                                 >
-                                    <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted transition-all hover:ring-2 hover:ring-ring">
-                                        {vendor.logo_url ? (
-                                            <img
-                                                src={vendor.logo_url}
-                                                alt=""
-                                                className="size-full object-cover"
-                                            />
-                                        ) : (
-                                            <Store className="size-5 text-muted-foreground" />
-                                        )}
-                                    </div>
+                                    {vendor.shop_name}
                                 </Link>
-                                <div className="min-w-0 flex-1">
-                                    <Link
-                                        href={vendorShow.url({
-                                            vendor: vendor.slug,
-                                        })}
-                                        className="font-semibold transition-colors hover:text-primary"
-                                    >
-                                        {vendor.shop_name}
-                                    </Link>
-                                    {vendor.delivery_notes ? (
-                                        <p className="mt-1 flex items-start gap-1.5 text-xs text-muted-foreground">
-                                            <Truck
-                                                className="mt-0.5 size-3.5 shrink-0"
-                                                aria-hidden="true"
-                                            />
-                                            {vendor.delivery_notes}
-                                        </p>
-                                    ) : null}
-                                    <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-                                        <Package
-                                            className="size-3.5 shrink-0"
+                                {vendor.delivery_notes ? (
+                                    <p className="mt-1 flex items-start gap-1.5 text-xs text-muted-foreground">
+                                        <Truck
+                                            className="mt-0.5 size-3.5 shrink-0"
                                             aria-hidden="true"
                                         />
-                                        You pay this shop in cash on delivery
+                                        {vendor.delivery_notes}
                                     </p>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-                </div>
-
-                {/* Full description */}
-                {product.description ? (
-                    <section
-                        className="mt-12 max-w-3xl"
-                        aria-labelledby="description-heading"
-                    >
-                        <h2
-                            id="description-heading"
-                            className="mb-4 text-xl font-semibold"
-                        >
-                            Description
-                        </h2>
-                        <div className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground">
-                            <p className="leading-relaxed whitespace-pre-line">
-                                {product.description}
-                            </p>
-                        </div>
-                    </section>
-                ) : null}
-
-                {/* Reviews */}
-                <section
-                    className="mt-12 max-w-3xl"
-                    aria-labelledby="reviews-heading"
-                >
-                    <div className="mb-6 flex items-center justify-between">
-                        <div>
-                            <h2
-                                id="reviews-heading"
-                                className="text-xl font-semibold"
-                            >
-                                Customer reviews
-                            </h2>
-                            {rating.count > 0 ? (
-                                <div className="mt-1 flex items-center gap-3">
-                                    <RatingStars
-                                        rating={rating.average}
-                                        size="lg"
-                                        showCount={false}
-                                    />
-                                    <span className="text-2xl font-bold tabular-nums">
-                                        {rating.average.toFixed(1)}
-                                    </span>
-                                    <span className="text-sm text-muted-foreground">
-                                        ({rating.count.toLocaleString()} review
-                                        {rating.count === 1 ? '' : 's'})
-                                    </span>
-                                </div>
-                            ) : null}
-                        </div>
-                    </div>
-
-                    <Deferred
-                        data="reviews"
-                        fallback={
-                            <div
-                                className="space-y-4"
-                                aria-busy="true"
-                                aria-label="Loading reviews…"
-                            >
-                                {Array.from({ length: 3 }).map((_, index) => (
-                                    <div
-                                        key={index}
-                                        className="space-y-2 rounded-xl border border-border p-4"
+                                ) : null}
+                                <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                                    <Package
+                                        className="size-3.5 shrink-0"
                                         aria-hidden="true"
-                                    >
-                                        <Skeleton className="h-4 w-32" />
-                                        <Skeleton className="h-3 w-full" />
-                                        <Skeleton className="h-3 w-3/4" />
-                                    </div>
-                                ))}
+                                    />
+                                    You pay this shop in cash on delivery
+                                </p>
                             </div>
-                        }
-                    >
-                        {(reviews?.data ?? []).length === 0 ? (
-                            <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border py-12 text-center">
-                                <MessageSquare
-                                    className="size-8 text-muted-foreground/50"
+                        </div>
+                    </div>
+
+                    {/* Promises */}
+                    <div className="mt-10 grid grid-cols-3 gap-4 text-xs">
+                        {[
+                            { icon: Truck, label: 'Delivered by the shop' },
+                            { icon: Banknote, label: 'Cash on delivery' },
+                            { icon: Package, label: 'Checked before handover' },
+                        ].map(({ icon: Icon, label }) => (
+                            <div
+                                key={label}
+                                className="flex flex-col items-start gap-2 border-t border-border pt-4"
+                            >
+                                <Icon
+                                    className="size-4 text-primary"
                                     aria-hidden="true"
                                 />
-                                <div>
-                                    <p className="font-medium">
-                                        No reviews yet
-                                    </p>
-                                    <p className="mt-1 text-sm text-muted-foreground">
-                                        Only customers who received this product
-                                        can review it.
-                                    </p>
-                                </div>
+                                <span>{label}</span>
                             </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* ─── Description ───────────────────────────────────────────── */}
+            {product.description ? (
+                <section
+                    className="mx-auto mt-16 w-full max-w-[1400px] px-4 lg:px-8"
+                    aria-labelledby="description-heading"
+                >
+                    <div className="max-w-3xl border-t border-border pt-10">
+                        <h2 id="description-heading" className="text-2xl">
+                            Description
+                        </h2>
+                        <p className="mt-4 leading-relaxed whitespace-pre-line text-muted-foreground">
+                            {product.description}
+                        </p>
+                    </div>
+                </section>
+            ) : null}
+
+            {/* ─── You may also like ─────────────────────────────────────── */}
+            <section
+                className="mx-auto mt-16 w-full max-w-[1400px] px-4 lg:px-8"
+                aria-labelledby="related-heading"
+            >
+                <div className="border-t border-border pt-10">
+                    <SectionHeader
+                        id="related-heading"
+                        eyebrow="More in this category"
+                        title="You may also like"
+                        viewAllHref={categoryShow.url({
+                            category: product.category.slug,
+                        })}
+                        className="mb-6"
+                    />
+                    <Deferred
+                        data="related"
+                        fallback={<ProductGridSkeleton count={4} />}
+                    >
+                        {(related ?? []).length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                                Nothing else is listed in{' '}
+                                {product.category.name} just yet.
+                            </p>
                         ) : (
-                            <div className="space-y-4">
-                                {(reviews?.data ?? []).map((review) => (
-                                    <ReviewCard
-                                        key={review.id}
-                                        review={review}
-                                    />
-                                ))}
-                            </div>
+                            <ProductGrid products={related ?? []} />
                         )}
                     </Deferred>
-                </section>
-            </div>
+                </div>
+            </section>
+
+            {/* ─── Reviews ───────────────────────────────────────────────── */}
+            <section
+                className="mx-auto mt-16 w-full max-w-[1400px] px-4 pb-8 lg:px-8"
+                aria-labelledby="reviews-heading"
+            >
+                <div className="max-w-3xl border-t border-border pt-10">
+                    <h2 id="reviews-heading" className="text-2xl">
+                        Customer reviews
+                    </h2>
+
+                    {rating.count > 0 ? (
+                        <div className="mt-3 flex items-center gap-3">
+                            <RatingStars
+                                rating={rating.average}
+                                size="lg"
+                                showCount={false}
+                            />
+                            <span className="font-heading text-2xl">
+                                {rating.average.toFixed(1)}
+                            </span>
+                            <span className="text-sm text-muted-foreground">
+                                ({rating.count.toLocaleString()} review
+                                {rating.count === 1 ? '' : 's'})
+                            </span>
+                        </div>
+                    ) : null}
+
+                    <div className="mt-8">
+                        <Deferred
+                            data="reviews"
+                            fallback={
+                                <div
+                                    className="space-y-4"
+                                    aria-busy="true"
+                                    aria-label="Loading reviews…"
+                                >
+                                    {Array.from({ length: 3 }).map(
+                                        (_, index) => (
+                                            <div
+                                                key={index}
+                                                className="space-y-2 card-soft p-5"
+                                                aria-hidden="true"
+                                            >
+                                                <Skeleton className="h-4 w-32" />
+                                                <Skeleton className="h-3 w-full" />
+                                                <Skeleton className="h-3 w-3/4" />
+                                            </div>
+                                        ),
+                                    )}
+                                </div>
+                            }
+                        >
+                            {(reviews?.data ?? []).length === 0 ? (
+                                <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border py-12 text-center">
+                                    <MessageSquare
+                                        className="size-8 text-muted-foreground/50"
+                                        aria-hidden="true"
+                                    />
+                                    <div>
+                                        <p className="font-semibold">
+                                            No reviews yet
+                                        </p>
+                                        <p className="mt-1 text-sm text-muted-foreground">
+                                            Only customers who received this
+                                            product can review it.
+                                        </p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {(reviews?.data ?? []).map((review) => (
+                                        <ReviewCard
+                                            key={review.id}
+                                            review={review}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </Deferred>
+                    </div>
+                </div>
+            </section>
         </StorefrontLayout>
     );
 }
@@ -565,7 +630,7 @@ export default function ProductPage({
 
 function ReviewCard({ review }: { review: ReviewRow }) {
     return (
-        <article className="space-y-3 rounded-xl border border-border bg-card p-4">
+        <article className="space-y-3 card-soft p-5">
             <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="space-y-1">
                     <RatingStars
@@ -574,7 +639,7 @@ function ReviewCard({ review }: { review: ReviewRow }) {
                         showCount={false}
                     />
                     {review.title ? (
-                        <p className="font-semibold">{review.title}</p>
+                        <p className="font-heading text-base">{review.title}</p>
                     ) : null}
                 </div>
                 <span className="text-xs text-muted-foreground">

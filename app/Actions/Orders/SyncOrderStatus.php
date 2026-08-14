@@ -68,6 +68,11 @@ final readonly class SyncOrderStatus
             }
         }
 
+        // Unreachable: $active is non-empty and every non-cancelled status appears in
+        // $progression, so the loop always returns. Kept because the return type
+        // demands it, and ignored for coverage because no input can drive it.
+        // @codeCoverageIgnoreStart
         return OrderStatus::Pending;
+        // @codeCoverageIgnoreEnd
     }
 }

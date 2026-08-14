@@ -46,6 +46,21 @@ final class ProductController extends Controller
             ->where('status', ReviewStatus::Approved);
 
         return Inertia::render('storefront/product', [
+            'navCategories' => Inertia::defer(fn (): array => $this->navCategories()),
+
+            // Same category, any shop — on a marketplace the useful comparison is
+            // "what else could I buy instead", which usually means another vendor.
+            'related' => Inertia::defer(fn (): array => Product::query()
+                ->sellable()
+                ->where('category_id', $product->category_id)
+                ->whereKeyNot($product->getKey())
+                ->with(['vendor', 'media'])
+                ->latest('published_at')
+                ->limit(4)
+                ->get()
+                ->map(fn (Product $related): array => $this->productCard($related))
+                ->all()),
+
             'product' => [
                 ...$this->productCard($product),
                 'description' => $product->description,

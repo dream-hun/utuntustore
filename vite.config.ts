@@ -15,6 +15,10 @@ export default defineConfig({
                 bunny('Instrument Sans', {
                     weights: [400, 500, 600],
                 }),
+                // Storefront display face — see --font-display in app.css.
+                bunny('Plus Jakarta Sans', {
+                    weights: [400, 500, 600, 700, 800],
+                }),
             ],
         }),
         inertia(),
