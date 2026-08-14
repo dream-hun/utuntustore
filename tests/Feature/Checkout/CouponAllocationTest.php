@@ -105,10 +105,10 @@ it('spreads a platform-wide discount proportionally and to the last franc', func
 });
 
 /**
- * The rounding remainder goes to the last eligible shop rather than being lost, so
- * the vendor shares always add up to the discount the customer was shown.
+ * The francs lost to rounding go to the shops rounded down hardest rather than being
+ * lost, so the vendor shares always add up to the discount the customer was shown.
  */
-it('gives the rounding remainder to the last shop rather than losing it', function (): void {
+it('hands out the rounding remainder rather than losing it', function (): void {
     $shopA = freeDeliveryShop();
     $shopB = freeDeliveryShop();
     $shopC = freeDeliveryShop();
@@ -128,6 +128,43 @@ it('gives the rounding remainder to the last shop rather than losing it', functi
 
     expect($quote->discount)->toBe(1000)
         ->and(array_sum($shares))->toBe(1000);
+});
+
+/**
+ * The remainder is not guaranteed to fit in the last shop.
+ *
+ * Every other shop's share is rounded down, so the leftover handed to the last one is
+ * its proportional share plus everyone else's rounding. When that shop is the cheapest
+ * in the basket and the coupon covers nearly all of it, the leftover exceeds what that
+ * shop is owed and the clamp silently drops the excess — leaving the customer's order
+ * discounted by more than the shops actually give up.
+ */
+it('spends the whole discount even when the last shop is too small to absorb the remainder', function (): void {
+    $shopA = freeDeliveryShop();
+    $shopB = freeDeliveryShop();
+    $shopC = freeDeliveryShop();
+
+    cartLineFor($shopA, 12000);
+    cartLineFor($shopB, 25000);
+    cartLineFor($shopC, 500);
+
+    $coupon = Coupon::factory()->fixed()->create(['value' => 37499]);
+
+    $quote = quoteTheCart($coupon);
+
+    $shares = array_map(
+        static fn (App\Support\Checkout\VendorQuote $vendorQuote): int => $vendorQuote->discount,
+        $quote->vendorQuotes,
+    );
+
+    $vendorTotals = array_sum(array_map(
+        static fn (App\Support\Checkout\VendorQuote $vendorQuote): int => $vendorQuote->total,
+        $quote->vendorQuotes,
+    ));
+
+    expect($quote->discount)->toBe(37499)
+        ->and(array_sum($shares))->toBe(37499)
+        ->and($vendorTotals)->toBe($quote->total);
 });
 
 it('leaves other shops untouched when a coupon belongs to one of them', function (): void {
