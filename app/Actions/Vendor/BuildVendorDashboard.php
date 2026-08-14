@@ -80,6 +80,13 @@ final readonly class BuildVendorDashboard
      */
     private function orderCounts(Vendor $vendor): ?stdClass
     {
+        // Snapshotted once rather than re-read per binding: each call reaches for
+        // now(), so a request crossing midnight on the last day of a month could
+        // otherwise count deliveries in one window and sum their cash in the next,
+        // and report a delivery count against a total from a different month.
+        $monthStart = $this->monthStart();
+        $monthEnd = $this->monthEnd();
+
         return VendorOrder::query()
             ->where('vendor_id', $vendor->id)
             ->toBase()
@@ -96,11 +103,11 @@ final readonly class BuildVendorDashboard
                     OrderStatus::Processing->value,
                     OrderStatus::Shipped->value,
                     OrderStatus::Delivered->value,
-                    $this->monthStart(),
-                    $this->monthEnd(),
+                    $monthStart,
+                    $monthEnd,
                     OrderStatus::Delivered->value,
-                    $this->monthStart(),
-                    $this->monthEnd(),
+                    $monthStart,
+                    $monthEnd,
                 ],
             )
             ->first();

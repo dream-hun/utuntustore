@@ -15,6 +15,19 @@ import { show as productShow } from '@/routes/products';
 import type { StorefrontCartPreview } from '@/types/marketplace';
 
 /**
+ * Pages that render the basket from their own props rather than from `cartPreview`.
+ *
+ * These cannot take a filtered response to a cart write: `storefront/cart` reads
+ * `groups`/`subtotal`/`itemCount` and `storefront/checkout` reads `quote`, none of
+ * which are in the filter, so they would keep rendering pre-change figures behind
+ * the open drawer.
+ */
+const PAGES_RENDERING_OWN_CART_STATE = [
+    'storefront/cart',
+    'storefront/checkout',
+];
+
+/**
  * The bag, one click from anywhere on the storefront.
  *
  * The basket itself is an optional shared prop, so it is fetched when the drawer
@@ -24,8 +37,8 @@ import type { StorefrontCartPreview } from '@/types/marketplace';
  */
 export function CartDrawer() {
     const isOpen = useCartDrawerOpen();
-    const preview = usePage().props.cartPreview as
-        StorefrontCartPreview | undefined;
+    const page = usePage();
+    const preview = page.props.cartPreview as StorefrontCartPreview | undefined;
 
     const refresh = () => router.reload({ only: ['cartPreview'] });
 
@@ -47,8 +60,17 @@ export function CartDrawer() {
      * `cartCount` is asked for alongside, which also fixes the header badge going
      * stale until the next full visit. Flash data is not a prop, so the server's
      * toast still arrives.
+     *
+     * The drawer is mounted by StorefrontLayout on every storefront page, though,
+     * and two of those render the basket themselves. Filtering the write response
+     * there left the page behind the drawer on stale quantities and totals — and on
+     * /cart, removing the last item left a phantom line with a live Checkout button,
+     * because that page's empty state is keyed on its own `groups` prop. So the
+     * filter is dropped on exactly those pages and the full prop set comes back.
      */
-    const only = ['cartPreview', 'cartCount'];
+    const only = PAGES_RENDERING_OWN_CART_STATE.includes(page.component)
+        ? undefined
+        : ['cartPreview', 'cartCount'];
 
     const setQuantity = (id: string, quantity: number) => {
         router.patch(

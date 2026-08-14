@@ -5,11 +5,6 @@ paths:
 
 # General
 
-## Pint: this project is not a git repo, so --dirty fails
-`vendor/bin/pint --dirty` errors with "The [--dirty] option is only available when using Git." — the project directory has no .git.
-
-Run `vendor/bin/pint --format agent` for everything, or pass explicit paths: `vendor/bin/pint app/Models tests/Feature --format agent`.
-
 ## Narrow mixed values instead of blind-casting — the codebase is PHPStan level max clean
 `phpstan.neon` is level max with no baseline and currently reports zero errors. Keep it there; do not add ignores or baseline entries.
 

@@ -131,6 +131,40 @@ it('hands out the rounding remainder rather than losing it', function (): void {
 });
 
 /**
+ * The remainder goes out one franc per shop, not all of it to whoever sorts first.
+ *
+ * Three equal shops sharing a 101-franc coupon are each owed 33 and a third. Handing
+ * the two leftover francs to the hardest-rounded shops in turn gives 34/34/33. Handing
+ * one shop as many as it had room for gave it both — 35/33/33, the right total but the
+ * wrong shop absorbing the rounding, and a split that moved with iteration order.
+ *
+ * Asserting only that the shares sum to the discount, as the test above does, passes
+ * either way; the per-shop figures are what pins the rule down.
+ */
+it('hands each shop at most one of the leftover francs', function (): void {
+    $shopA = freeDeliveryShop();
+    $shopB = freeDeliveryShop();
+    $shopC = freeDeliveryShop();
+
+    cartLineFor($shopA, 1000);
+    cartLineFor($shopB, 1000);
+    cartLineFor($shopC, 1000);
+
+    $coupon = Coupon::factory()->fixed()->create(['value' => 101]);
+
+    $quote = quoteTheCart($coupon);
+
+    $shares = array_map(
+        static fn (App\Support\Checkout\VendorQuote $vendorQuote): int => $vendorQuote->discount,
+        $quote->vendorQuotes,
+    );
+
+    expect($quote->discount)->toBe(101)
+        ->and(array_sum($shares))->toBe(101)
+        ->and($shares)->toBe([34, 34, 33]);
+});
+
+/**
  * The remainder is not guaranteed to fit in the last shop.
  *
  * Every other shop's share is rounded down, so the leftover handed to the last one is

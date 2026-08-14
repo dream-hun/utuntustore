@@ -131,8 +131,12 @@ final class HandleInertiaRequests extends Middleware
     /**
      * Select the id of the visitor's cart, for use as a subquery.
      *
-     * Both branches hit a unique index on carts (user_id, session_id), so this stays a
-     * primary-key-shaped lookup however many carts the table holds.
+     * carts carries two separate single-column unique indexes, `user_id` and
+     * `session_id` — not one composite over the pair. Each branch filters on whichever
+     * of them it owns, so both still match at most one row however many carts the
+     * table holds. The guest branch's extra `whereNull('user_id')` is a correctness
+     * filter rather than part of the lookup: the `session_id` index alone already
+     * narrows it to a single row.
      */
     private function currentCartIdQuery(Request $request, QueryBuilder $query): QueryBuilder
     {

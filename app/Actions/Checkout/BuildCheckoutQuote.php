@@ -259,12 +259,18 @@ final readonly class BuildCheckoutQuote
      * proportional share, then hand the francs lost to rounding — at most one per shop —
      * to whichever shops were rounded down hardest.
      *
-     * The leftover is spread rather than dumped on one shop because no single shop is
-     * guaranteed to have room for it. The cheapest shop in a basket can be owed less
-     * than the accumulated rounding when a coupon covers nearly the whole order, and
-     * capping its share there would quietly destroy the difference, leaving the order
-     * discounted by more than the shops gave up. Spreading always fits: the shops'
-     * combined room is the eligible subtotal, which is never less than the discount.
+     * Exactly one franc per shop, never more: handing a shop as many as it had room
+     * for made the split depend on iteration order rather than on who was rounded
+     * down hardest — three equal shops sharing 101 francs took 35/33/33 instead of
+     * 34/34/33. The totals were right either way, but the wrong shop absorbed the
+     * rounding, and identical baskets have to divide identically.
+     *
+     * One franc each always fits. The leftover is at most one less than the number of
+     * eligible shops, and while the discount is below the eligible subtotal every
+     * shop's floored share is strictly below its own subtotal — so each has room for
+     * the single franc it is handed. A discount equal to the eligible subtotal (the
+     * ceiling CalculateCouponDiscount clamps to) divides exactly and leaves nothing
+     * over. No shop can therefore be pushed past what it is giving up.
      *
      * @param  array<int, VendorQuote>  $vendorQuotes
      * @return array<int, int> Discount per vendor quote, keyed by its index.
@@ -303,10 +309,8 @@ final readonly class BuildCheckoutQuote
                 break;
             }
 
-            $franc = min($vendorQuotes[$index]->subtotal - $shares[$index], $leftover);
-
-            $shares[$index] += $franc;
-            $leftover -= $franc;
+            $shares[$index]++;
+            $leftover--;
         }
 
         return $shares;
