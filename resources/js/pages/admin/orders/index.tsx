@@ -1,11 +1,11 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { Receipt } from 'lucide-react';
-import { useState } from 'react';
 import { AdminNav } from '@/components/admin/admin-nav';
 import type { AdminOrderRow } from '@/components/admin/types';
+import type { DataTableColumn } from '@/components/data-table';
+import { DataTable } from '@/components/data-table';
 import { EmptyState } from '@/components/empty-state';
 import { Money } from '@/components/money';
-import { PaginationNav } from '@/components/pagination-nav';
 import { OrderStatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,19 +16,63 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
+import { useTableFilters } from '@/hooks/use-table-filters';
 import AppLayout from '@/layouts/app-layout';
 import { formatDate } from '@/lib/format';
 import type { Paginated } from '@/types/marketplace';
 
 const ANY = 'any';
+
+const columns: DataTableColumn<AdminOrderRow>[] = [
+    {
+        id: 'order',
+        header: 'Order',
+        cell: (order) => (
+            <Link
+                href={`/admin/orders/${order.id}`}
+                className="text-sm font-medium hover:underline"
+            >
+                {order.order_number}
+            </Link>
+        ),
+    },
+    {
+        id: 'customer',
+        header: 'Customer',
+        cell: (order) => <span className="text-sm">{order.customer_name}</span>,
+    },
+    {
+        id: 'shops',
+        header: 'Shops',
+        cell: (order) => (
+            <span className="text-xs text-muted-foreground">
+                {order.vendor_orders.length}
+            </span>
+        ),
+    },
+    {
+        id: 'status',
+        header: 'Status',
+        cell: (order) => <OrderStatusBadge status={order.status} />,
+    },
+    {
+        id: 'placed',
+        header: 'Placed',
+        cell: (order) => (
+            <span className="text-xs text-muted-foreground">
+                {formatDate(order.placed_at)}
+            </span>
+        ),
+    },
+    {
+        id: 'value',
+        header: 'Value',
+        align: 'end',
+        cell: (order) => (
+            <Money amount={order.total} currency={order.currency} />
+        ),
+    },
+];
 
 export default function AdminOrders({
     orders,
@@ -42,21 +86,10 @@ export default function AdminOrders({
         to: string | null;
     };
 }) {
-    const [search, setSearch] = useState(filters.search ?? '');
-
-    const apply = (next: Record<string, string | undefined>) => {
-        router.get(
-            '/admin/orders',
-            {
-                search: search || undefined,
-                status: filters.status ?? undefined,
-                from: filters.from ?? undefined,
-                to: filters.to ?? undefined,
-                ...next,
-            },
-            { preserveState: true, preserveScroll: true, replace: true },
-        );
-    };
+    const { values, set, commit, clear, isFiltered } = useTableFilters({
+        url: '/admin/orders',
+        filters,
+    });
 
     return (
         <AppLayout
@@ -84,13 +117,20 @@ export default function AdminOrders({
                     <form
                         onSubmit={(event) => {
                             event.preventDefault();
-                            apply({});
+                            commit();
                         }}
                         className="flex gap-2"
                     >
+                        <label htmlFor="order-search" className="sr-only">
+                            Search orders
+                        </label>
                         <Input
-                            value={search}
-                            onChange={(event) => setSearch(event.target.value)}
+                            id="order-search"
+                            type="search"
+                            value={values.search ?? ''}
+                            onChange={(event) =>
+                                set('search', event.target.value)
+                            }
                             placeholder="Order number or customer"
                             className="w-60"
                         />
@@ -100,12 +140,12 @@ export default function AdminOrders({
                     </form>
 
                     <Select
-                        value={filters.status ?? ANY}
+                        value={values.status ?? ANY}
                         onValueChange={(value) =>
-                            apply({ status: value === ANY ? undefined : value })
+                            set('status', value === ANY ? null : value, true)
                         }
                     >
-                        <SelectTrigger className="w-44">
+                        <SelectTrigger className="w-44" aria-label="Status">
                             <SelectValue placeholder="Any status" />
                         </SelectTrigger>
                         <SelectContent>
@@ -121,86 +161,71 @@ export default function AdminOrders({
                         </SelectContent>
                     </Select>
 
-                    <Input
-                        type="date"
-                        value={filters.from ?? ''}
-                        onChange={(event) =>
-                            apply({ from: event.target.value || undefined })
-                        }
-                        className="w-40"
-                    />
-                    <Input
-                        type="date"
-                        value={filters.to ?? ''}
-                        onChange={(event) =>
-                            apply({ to: event.target.value || undefined })
-                        }
-                        className="w-40"
-                    />
+                    <div className="flex items-center gap-2">
+                        <label htmlFor="order-from" className="sr-only">
+                            Placed from
+                        </label>
+                        <Input
+                            id="order-from"
+                            type="date"
+                            value={values.from ?? ''}
+                            onChange={(event) =>
+                                set('from', event.target.value || null, true)
+                            }
+                            className="w-40"
+                        />
+                        <span
+                            aria-hidden="true"
+                            className="text-sm text-muted-foreground"
+                        >
+                            –
+                        </span>
+                        <label htmlFor="order-to" className="sr-only">
+                            Placed until
+                        </label>
+                        <Input
+                            id="order-to"
+                            type="date"
+                            value={values.to ?? ''}
+                            onChange={(event) =>
+                                set('to', event.target.value || null, true)
+                            }
+                            className="w-40"
+                        />
+                    </div>
+
+                    {isFiltered ? (
+                        <Button type="button" variant="ghost" onClick={clear}>
+                            Clear filters
+                        </Button>
+                    ) : null}
                 </div>
 
-                {orders.data.length === 0 ? (
-                    <EmptyState
-                        icon={Receipt}
-                        title="No orders found"
-                        description="Try a different filter or date range."
-                    />
-                ) : (
-                    <>
-                        <div className="overflow-x-auto rounded-lg border">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Order</TableHead>
-                                        <TableHead>Customer</TableHead>
-                                        <TableHead>Shops</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead>Placed</TableHead>
-                                        <TableHead className="text-right">
-                                            Value
-                                        </TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {orders.data.map((order) => (
-                                        <TableRow key={order.id}>
-                                            <TableCell>
-                                                <Link
-                                                    href={`/admin/orders/${order.id}`}
-                                                    className="text-sm font-medium hover:underline"
-                                                >
-                                                    {order.order_number}
-                                                </Link>
-                                            </TableCell>
-                                            <TableCell className="text-sm">
-                                                {order.customer_name}
-                                            </TableCell>
-                                            <TableCell className="text-xs text-muted-foreground">
-                                                {order.vendor_orders.length}
-                                            </TableCell>
-                                            <TableCell>
-                                                <OrderStatusBadge
-                                                    status={order.status}
-                                                />
-                                            </TableCell>
-                                            <TableCell className="text-xs text-muted-foreground">
-                                                {formatDate(order.placed_at)}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <Money
-                                                    amount={order.total}
-                                                    currency={order.currency}
-                                                />
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-
-                        <PaginationNav paginator={orders} />
-                    </>
-                )}
+                <DataTable
+                    caption="Orders"
+                    columns={columns}
+                    rows={orders.data}
+                    getRowKey={(order) => order.id}
+                    paginator={orders}
+                    empty={
+                        <EmptyState
+                            icon={Receipt}
+                            title="No orders found"
+                            description={
+                                isFiltered
+                                    ? 'No order matches these filters. Try a different status or date range.'
+                                    : 'Orders appear here as customers buy from vendors.'
+                            }
+                            action={
+                                isFiltered ? (
+                                    <Button variant="outline" onClick={clear}>
+                                        Clear filters
+                                    </Button>
+                                ) : undefined
+                            }
+                        />
+                    }
+                />
             </div>
         </AppLayout>
     );

@@ -1,21 +1,24 @@
 import { Deferred, Head, router, useForm, usePage } from '@inertiajs/react';
-import { ImageOff, MoreHorizontal, Package, Plus } from 'lucide-react';
+import {
+    Eye,
+    EyeOff,
+    ImageOff,
+    Package,
+    Pencil,
+    Plus,
+    Trash2,
+} from 'lucide-react';
 import { useState } from 'react';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import type { DataTableColumn } from '@/components/data-table';
+import { DataTable } from '@/components/data-table';
 import { EmptyState } from '@/components/empty-state';
 import { FormModal } from '@/components/form-modal';
 import InputError from '@/components/input-error';
 import { Money } from '@/components/money';
-import { PaginationNav } from '@/components/pagination-nav';
+import { RowActions } from '@/components/row-actions';
 import { ProductStatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -26,17 +29,10 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { SubscriptionBanner } from '@/components/vendor/subscription-banner';
 import { VendorNav } from '@/components/vendor/vendor-nav';
+import { useTableFilters } from '@/hooks/use-table-filters';
 import AppLayout from '@/layouts/app-layout';
 import type { Paginated, ProductStatus } from '@/types/marketplace';
 
@@ -84,7 +80,11 @@ export default function VendorProducts({
     const [editing, setEditing] = useState<ProductRow | null>(null);
     const [creating, setCreating] = useState(false);
     const [deleting, setDeleting] = useState<ProductRow | null>(null);
-    const [search, setSearch] = useState(filters.search ?? '');
+
+    const { values, set, commit, clear, isFiltered } = useTableFilters({
+        url: '/vendor/products',
+        filters,
+    });
 
     const form = useForm<{
         name: string;
@@ -159,18 +159,115 @@ export default function VendorProducts({
         form.post('/vendor/products', options);
     };
 
-    const applyFilters = (next: Record<string, string | undefined>) => {
-        router.get(
-            '/vendor/products',
-            {
-                search: search || undefined,
-                status: filters.status ?? undefined,
-                category: filters.category ?? undefined,
-                ...next,
-            },
-            { preserveState: true, preserveScroll: true, replace: true },
-        );
-    };
+    const columns: DataTableColumn<ProductRow>[] = [
+        {
+            id: 'product',
+            header: 'Product',
+            cell: (product) => (
+                <div className="flex items-center gap-3">
+                    <div className="size-10 shrink-0 overflow-hidden rounded-md bg-muted">
+                        {product.images[0] ? (
+                            <img
+                                src={product.images[0].thumb_url}
+                                alt=""
+                                className="size-full object-cover"
+                            />
+                        ) : (
+                            <div className="flex size-full items-center justify-center text-muted-foreground">
+                                <ImageOff className="size-4" />
+                                <span className="sr-only">No image</span>
+                            </div>
+                        )}
+                    </div>
+                    <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">
+                            {product.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                            {product.category.name}
+                        </p>
+                    </div>
+                </div>
+            ),
+        },
+        {
+            id: 'status',
+            header: 'Status',
+            cell: (product) => <ProductStatusBadge status={product.status} />,
+        },
+        {
+            id: 'stock',
+            header: 'Stock',
+            cell: (product) => (
+                <span
+                    className={
+                        product.is_low_stock
+                            ? 'text-sm font-medium text-amber-600 dark:text-amber-400'
+                            : 'text-sm'
+                    }
+                >
+                    {product.stock_quantity}
+                    {product.is_low_stock ? (
+                        <span className="sr-only"> — low stock</span>
+                    ) : null}
+                </span>
+            ),
+        },
+        {
+            id: 'price',
+            header: 'Price',
+            align: 'end',
+            cell: (product) => (
+                <Money amount={product.price} currency={product.currency} />
+            ),
+        },
+        {
+            id: 'actions',
+            header: 'Actions',
+            headerHidden: true,
+            headClassName: 'w-10',
+            cell: (product) => (
+                <RowActions
+                    rowLabel={product.name}
+                    groups={[
+                        {
+                            actions: [
+                                {
+                                    label: 'Edit',
+                                    icon: Pencil,
+                                    onSelect: () => openEdit(product),
+                                },
+                                {
+                                    label:
+                                        product.status === 'published'
+                                            ? 'Unpublish'
+                                            : 'Publish',
+                                    icon:
+                                        product.status === 'published'
+                                            ? EyeOff
+                                            : Eye,
+                                    disabled:
+                                        !canSell &&
+                                        product.status !== 'published',
+                                    onSelect: () => togglePublication(product),
+                                },
+                            ],
+                        },
+                        {
+                            actions: [
+                                {
+                                    label: 'Delete',
+                                    icon: Trash2,
+                                    destructive: true,
+                                    onSelect: () => setDeleting(product),
+                                },
+                            ],
+                        },
+                    ]}
+                />
+            ),
+        },
+    ];
 
     const togglePublication = (product: ProductRow) => {
         if (product.status === 'published') {
@@ -383,13 +480,20 @@ export default function VendorProducts({
                     <form
                         onSubmit={(event) => {
                             event.preventDefault();
-                            applyFilters({});
+                            commit();
                         }}
                         className="flex gap-2"
                     >
+                        <label htmlFor="product-search" className="sr-only">
+                            Search products
+                        </label>
                         <Input
-                            value={search}
-                            onChange={(event) => setSearch(event.target.value)}
+                            id="product-search"
+                            type="search"
+                            value={values.search ?? ''}
+                            onChange={(event) =>
+                                set('search', event.target.value)
+                            }
                             placeholder="Search products"
                             className="w-56"
                         />
@@ -399,14 +503,12 @@ export default function VendorProducts({
                     </form>
 
                     <Select
-                        value={filters.status ?? ANY}
+                        value={values.status ?? ANY}
                         onValueChange={(value) =>
-                            applyFilters({
-                                status: value === ANY ? undefined : value,
-                            })
+                            set('status', value === ANY ? null : value, true)
                         }
                     >
-                        <SelectTrigger className="w-40">
+                        <SelectTrigger className="w-40" aria-label="Status">
                             <SelectValue placeholder="Any status" />
                         </SelectTrigger>
                         <SelectContent>
@@ -416,159 +518,51 @@ export default function VendorProducts({
                             <SelectItem value="archived">Archived</SelectItem>
                         </SelectContent>
                     </Select>
+
+                    {isFiltered ? (
+                        <Button type="button" variant="ghost" onClick={clear}>
+                            Clear filters
+                        </Button>
+                    ) : null}
                 </div>
 
-                {products.data.length === 0 ? (
-                    <EmptyState
-                        icon={Package}
-                        title="No products yet"
-                        description="Add your first product, then publish it so customers can buy it."
-                        action={
-                            <Button onClick={openCreate} disabled={!canSell}>
-                                <Plus className="size-4" />
-                                New product
-                            </Button>
-                        }
-                    />
-                ) : (
-                    <>
-                        <div className="overflow-x-auto rounded-lg border">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Product</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead>Stock</TableHead>
-                                        <TableHead className="text-right">
-                                            Price
-                                        </TableHead>
-                                        <TableHead className="w-10" />
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {products.data.map((product) => (
-                                        <TableRow key={product.id}>
-                                            <TableCell>
-                                                <div className="flex items-center gap-3">
-                                                    <div className="size-10 shrink-0 overflow-hidden rounded-md bg-muted">
-                                                        {product.images[0] ? (
-                                                            <img
-                                                                src={
-                                                                    product
-                                                                        .images[0]
-                                                                        .thumb_url
-                                                                }
-                                                                alt={
-                                                                    product.name
-                                                                }
-                                                                className="size-full object-cover"
-                                                            />
-                                                        ) : (
-                                                            <div className="flex size-full items-center justify-center text-muted-foreground">
-                                                                <ImageOff className="size-4" />
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <div className="min-w-0">
-                                                        <p className="truncate text-sm font-medium">
-                                                            {product.name}
-                                                        </p>
-                                                        <p className="text-xs text-muted-foreground">
-                                                            {
-                                                                product.category
-                                                                    .name
-                                                            }
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <ProductStatusBadge
-                                                    status={product.status}
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                <span
-                                                    className={
-                                                        product.is_low_stock
-                                                            ? 'text-sm font-medium text-amber-600 dark:text-amber-400'
-                                                            : 'text-sm'
-                                                    }
-                                                >
-                                                    {product.stock_quantity}
-                                                </span>
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <Money
-                                                    amount={product.price}
-                                                    currency={product.currency}
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger
-                                                        asChild
-                                                    >
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                        >
-                                                            <MoreHorizontal className="size-4" />
-                                                            <span className="sr-only">
-                                                                Actions
-                                                            </span>
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end">
-                                                        <DropdownMenuItem
-                                                            onSelect={() =>
-                                                                openEdit(
-                                                                    product,
-                                                                )
-                                                            }
-                                                        >
-                                                            Edit
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem
-                                                            disabled={
-                                                                !canSell &&
-                                                                product.status !==
-                                                                    'published'
-                                                            }
-                                                            onSelect={() =>
-                                                                togglePublication(
-                                                                    product,
-                                                                )
-                                                            }
-                                                        >
-                                                            {product.status ===
-                                                            'published'
-                                                                ? 'Unpublish'
-                                                                : 'Publish'}
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuSeparator />
-                                                        <DropdownMenuItem
-                                                            variant="destructive"
-                                                            onSelect={() =>
-                                                                setDeleting(
-                                                                    product,
-                                                                )
-                                                            }
-                                                        >
-                                                            Delete
-                                                        </DropdownMenuItem>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-
-                        <PaginationNav paginator={products} />
-                    </>
-                )}
+                <DataTable
+                    caption="Products"
+                    columns={columns}
+                    rows={products.data}
+                    getRowKey={(product) => product.id}
+                    paginator={products}
+                    empty={
+                        <EmptyState
+                            icon={Package}
+                            title={
+                                isFiltered
+                                    ? 'No products found'
+                                    : 'No products yet'
+                            }
+                            description={
+                                isFiltered
+                                    ? 'No product matches these filters.'
+                                    : 'Add your first product, then publish it so customers can buy it.'
+                            }
+                            action={
+                                isFiltered ? (
+                                    <Button variant="outline" onClick={clear}>
+                                        Clear filters
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        onClick={openCreate}
+                                        disabled={!canSell}
+                                    >
+                                        <Plus className="size-4" />
+                                        New product
+                                    </Button>
+                                )
+                            }
+                        />
+                    }
+                />
             </div>
 
             <FormModal

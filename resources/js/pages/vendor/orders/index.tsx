@@ -1,9 +1,9 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { Receipt } from 'lucide-react';
-import { useState } from 'react';
+import type { DataTableColumn } from '@/components/data-table';
+import { DataTable } from '@/components/data-table';
 import { EmptyState } from '@/components/empty-state';
 import { Money } from '@/components/money';
-import { PaginationNav } from '@/components/pagination-nav';
 import { OrderStatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,16 +14,9 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
 import { SubscriptionBanner } from '@/components/vendor/subscription-banner';
 import { VendorNav } from '@/components/vendor/vendor-nav';
+import { useTableFilters } from '@/hooks/use-table-filters';
 import AppLayout from '@/layouts/app-layout';
 import { formatDate } from '@/lib/format';
 import type { OrderStatus, Paginated } from '@/types/marketplace';
@@ -44,6 +37,49 @@ interface VendorOrderRow {
 
 const ANY = 'any';
 
+const columns: DataTableColumn<VendorOrderRow>[] = [
+    {
+        id: 'order',
+        header: 'Order',
+        cell: (order) => (
+            <>
+                <Link
+                    href={`/vendor/orders/${order.id}`}
+                    className="text-sm font-medium hover:underline"
+                >
+                    {order.order_number}
+                </Link>
+                <p className="text-xs text-muted-foreground">
+                    {order.item_count} item{order.item_count === 1 ? '' : 's'}
+                </p>
+            </>
+        ),
+    },
+    {
+        id: 'customer',
+        header: 'Customer',
+        cellClassName: 'text-sm',
+        cell: (order) => order.customer_name,
+    },
+    {
+        id: 'status',
+        header: 'Status',
+        cell: (order) => <OrderStatusBadge status={order.status} />,
+    },
+    {
+        id: 'placed',
+        header: 'Placed',
+        cellClassName: 'text-xs text-muted-foreground',
+        cell: (order) => formatDate(order.created_at),
+    },
+    {
+        id: 'cash_due',
+        header: 'Cash due',
+        align: 'end',
+        cell: (order) => <Money amount={order.total} />,
+    },
+];
+
 export default function VendorOrders({
     orders,
     filters,
@@ -51,19 +87,10 @@ export default function VendorOrders({
     orders: Paginated<VendorOrderRow>;
     filters: { search: string | null; status: string | null };
 }) {
-    const [search, setSearch] = useState(filters.search ?? '');
-
-    const apply = (next: Record<string, string | undefined>) => {
-        router.get(
-            '/vendor/orders',
-            {
-                search: search || undefined,
-                status: filters.status ?? undefined,
-                ...next,
-            },
-            { preserveState: true, preserveScroll: true, replace: true },
-        );
-    };
+    const { values, set, commit, clear, isFiltered } = useTableFilters({
+        url: '/vendor/orders',
+        filters,
+    });
 
     return (
         <AppLayout
@@ -91,13 +118,23 @@ export default function VendorOrders({
                     <form
                         onSubmit={(event) => {
                             event.preventDefault();
-                            apply({});
+                            commit();
                         }}
                         className="flex gap-2"
                     >
+                        <label
+                            htmlFor="vendor-order-search"
+                            className="sr-only"
+                        >
+                            Search orders
+                        </label>
                         <Input
-                            value={search}
-                            onChange={(event) => setSearch(event.target.value)}
+                            id="vendor-order-search"
+                            type="search"
+                            value={values.search ?? ''}
+                            onChange={(event) =>
+                                set('search', event.target.value)
+                            }
                             placeholder="Order number or customer"
                             className="w-60"
                         />
@@ -107,12 +144,12 @@ export default function VendorOrders({
                     </form>
 
                     <Select
-                        value={filters.status ?? ANY}
+                        value={values.status ?? ANY}
                         onValueChange={(value) =>
-                            apply({ status: value === ANY ? undefined : value })
+                            set('status', value === ANY ? null : value, true)
                         }
                     >
-                        <SelectTrigger className="w-44">
+                        <SelectTrigger className="w-44" aria-label="Status">
                             <SelectValue placeholder="Any status" />
                         </SelectTrigger>
                         <SelectContent>
@@ -127,69 +164,41 @@ export default function VendorOrders({
                             <SelectItem value="cancelled">Cancelled</SelectItem>
                         </SelectContent>
                     </Select>
+
+                    {isFiltered ? (
+                        <Button type="button" variant="ghost" onClick={clear}>
+                            Clear filters
+                        </Button>
+                    ) : null}
                 </div>
 
-                {orders.data.length === 0 ? (
-                    <EmptyState
-                        icon={Receipt}
-                        title="No orders yet"
-                        description="Orders for your products will appear here as customers place them."
-                    />
-                ) : (
-                    <>
-                        <div className="overflow-x-auto rounded-lg border">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Order</TableHead>
-                                        <TableHead>Customer</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead>Placed</TableHead>
-                                        <TableHead className="text-right">
-                                            Cash due
-                                        </TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {orders.data.map((order) => (
-                                        <TableRow key={order.id}>
-                                            <TableCell>
-                                                <Link
-                                                    href={`/vendor/orders/${order.id}`}
-                                                    className="text-sm font-medium hover:underline"
-                                                >
-                                                    {order.order_number}
-                                                </Link>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {order.item_count} item
-                                                    {order.item_count === 1
-                                                        ? ''
-                                                        : 's'}
-                                                </p>
-                                            </TableCell>
-                                            <TableCell className="text-sm">
-                                                {order.customer_name}
-                                            </TableCell>
-                                            <TableCell>
-                                                <OrderStatusBadge
-                                                    status={order.status}
-                                                />
-                                            </TableCell>
-                                            <TableCell className="text-xs text-muted-foreground">
-                                                {formatDate(order.created_at)}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <Money amount={order.total} />
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-
-                        <PaginationNav paginator={orders} />
-                    </>
-                )}
+                <DataTable
+                    caption="Orders"
+                    columns={columns}
+                    rows={orders.data}
+                    getRowKey={(order) => order.id}
+                    paginator={orders}
+                    empty={
+                        <EmptyState
+                            icon={Receipt}
+                            title={
+                                isFiltered ? 'No orders found' : 'No orders yet'
+                            }
+                            description={
+                                isFiltered
+                                    ? 'No order matches these filters.'
+                                    : 'Orders for your products will appear here as customers place them.'
+                            }
+                            action={
+                                isFiltered ? (
+                                    <Button variant="outline" onClick={clear}>
+                                        Clear filters
+                                    </Button>
+                                ) : undefined
+                            }
+                        />
+                    }
+                />
             </div>
         </AppLayout>
     );

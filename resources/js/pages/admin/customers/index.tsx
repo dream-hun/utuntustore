@@ -1,20 +1,16 @@
 import { Head, router } from '@inertiajs/react';
-import { MoreHorizontal, Users } from 'lucide-react';
+import { Ban, RotateCcw, Users } from 'lucide-react';
 import { useState } from 'react';
 import { AdminNav } from '@/components/admin/admin-nav';
 import type { AdminCustomerRow } from '@/components/admin/types';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import type { DataTableColumn } from '@/components/data-table';
+import { DataTable } from '@/components/data-table';
 import { EmptyState } from '@/components/empty-state';
 import { Money } from '@/components/money';
-import { PaginationNav } from '@/components/pagination-nav';
+import { RowActions } from '@/components/row-actions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import {
     Select,
@@ -23,19 +19,62 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
+import { useTableFilters } from '@/hooks/use-table-filters';
 import AppLayout from '@/layouts/app-layout';
 import { formatDate } from '@/lib/format';
 import type { Paginated } from '@/types/marketplace';
 
 const ANY = 'any';
+
+const columns: DataTableColumn<AdminCustomerRow>[] = [
+    {
+        id: 'customer',
+        header: 'Customer',
+        cell: (customer) => (
+            <>
+                <p className="text-sm font-medium">{customer.name}</p>
+                <p className="text-xs text-muted-foreground">
+                    {customer.email}
+                    {customer.phone ? ` · ${customer.phone}` : ''}
+                </p>
+            </>
+        ),
+    },
+    {
+        id: 'status',
+        header: 'Status',
+        cell: (customer) =>
+            customer.status === 'active' ? (
+                <Badge className="border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+                    Active
+                </Badge>
+            ) : (
+                <Badge variant="destructive">Suspended</Badge>
+            ),
+    },
+    {
+        id: 'orders',
+        header: 'Orders',
+        cell: (customer) => (
+            <span className="text-sm">{customer.orders_count}</span>
+        ),
+    },
+    {
+        id: 'joined',
+        header: 'Joined',
+        cell: (customer) => (
+            <span className="text-xs text-muted-foreground">
+                {formatDate(customer.created_at)}
+            </span>
+        ),
+    },
+    {
+        id: 'spent',
+        header: 'Spent with vendors',
+        align: 'end',
+        cell: (customer) => <Money amount={customer.orders_total} />,
+    },
+];
 
 export default function AdminCustomers({
     customers,
@@ -44,22 +83,47 @@ export default function AdminCustomers({
     customers: Paginated<AdminCustomerRow>;
     filters: { search: string | null; status: string | null };
 }) {
-    const [search, setSearch] = useState(filters.search ?? '');
     const [pending, setPending] = useState<AdminCustomerRow | null>(null);
 
-    const apply = (next: Record<string, string | undefined>) => {
-        router.get(
-            '/admin/customers',
-            {
-                search: search || undefined,
-                status: filters.status ?? undefined,
-                ...next,
-            },
-            { preserveState: true, preserveScroll: true, replace: true },
-        );
-    };
+    const { values, set, commit, clear, isFiltered } = useTableFilters({
+        url: '/admin/customers',
+        filters,
+    });
 
     const suspending = pending?.status === 'active';
+
+    const tableColumns: DataTableColumn<AdminCustomerRow>[] = [
+        ...columns,
+        {
+            id: 'actions',
+            header: 'Actions',
+            headerHidden: true,
+            headClassName: 'w-10',
+            cell: (customer) => (
+                <RowActions
+                    rowLabel={customer.name}
+                    groups={[
+                        {
+                            actions: [
+                                customer.status === 'active'
+                                    ? {
+                                          label: 'Suspend',
+                                          icon: Ban,
+                                          destructive: true,
+                                          onSelect: () => setPending(customer),
+                                      }
+                                    : {
+                                          label: 'Reinstate',
+                                          icon: RotateCcw,
+                                          onSelect: () => setPending(customer),
+                                      },
+                            ],
+                        },
+                    ]}
+                />
+            ),
+        },
+    ];
 
     return (
         <AppLayout
@@ -81,13 +145,20 @@ export default function AdminCustomers({
                     <form
                         onSubmit={(event) => {
                             event.preventDefault();
-                            apply({});
+                            commit();
                         }}
                         className="flex gap-2"
                     >
+                        <label htmlFor="customer-search" className="sr-only">
+                            Search customers
+                        </label>
                         <Input
-                            value={search}
-                            onChange={(event) => setSearch(event.target.value)}
+                            id="customer-search"
+                            type="search"
+                            value={values.search ?? ''}
+                            onChange={(event) =>
+                                set('search', event.target.value)
+                            }
                             placeholder="Name, email or phone"
                             className="w-60"
                         />
@@ -97,12 +168,12 @@ export default function AdminCustomers({
                     </form>
 
                     <Select
-                        value={filters.status ?? ANY}
+                        value={values.status ?? ANY}
                         onValueChange={(value) =>
-                            apply({ status: value === ANY ? undefined : value })
+                            set('status', value === ANY ? null : value, true)
                         }
                     >
-                        <SelectTrigger className="w-40">
+                        <SelectTrigger className="w-40" aria-label="Status">
                             <SelectValue placeholder="Any status" />
                         </SelectTrigger>
                         <SelectContent>
@@ -111,117 +182,39 @@ export default function AdminCustomers({
                             <SelectItem value="suspended">Suspended</SelectItem>
                         </SelectContent>
                     </Select>
+
+                    {isFiltered ? (
+                        <Button type="button" variant="ghost" onClick={clear}>
+                            Clear filters
+                        </Button>
+                    ) : null}
                 </div>
 
-                {customers.data.length === 0 ? (
-                    <EmptyState
-                        icon={Users}
-                        title="No customers found"
-                        description="Try a different search."
-                    />
-                ) : (
-                    <>
-                        <div className="overflow-x-auto rounded-lg border">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Customer</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead>Orders</TableHead>
-                                        <TableHead>Joined</TableHead>
-                                        <TableHead className="text-right">
-                                            Spent with vendors
-                                        </TableHead>
-                                        <TableHead className="w-10" />
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {customers.data.map((customer) => (
-                                        <TableRow key={customer.id}>
-                                            <TableCell>
-                                                <p className="text-sm font-medium">
-                                                    {customer.name}
-                                                </p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {customer.email}
-                                                    {customer.phone
-                                                        ? ` · ${customer.phone}`
-                                                        : ''}
-                                                </p>
-                                            </TableCell>
-                                            <TableCell>
-                                                {customer.status ===
-                                                'active' ? (
-                                                    <Badge className="border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
-                                                        Active
-                                                    </Badge>
-                                                ) : (
-                                                    <Badge variant="destructive">
-                                                        Suspended
-                                                    </Badge>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="text-sm">
-                                                {customer.orders_count}
-                                            </TableCell>
-                                            <TableCell className="text-xs text-muted-foreground">
-                                                {formatDate(
-                                                    customer.created_at,
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <Money
-                                                    amount={
-                                                        customer.orders_total
-                                                    }
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger
-                                                        asChild
-                                                    >
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                        >
-                                                            <MoreHorizontal className="size-4" />
-                                                            <span className="sr-only">
-                                                                Actions
-                                                            </span>
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end">
-                                                        <DropdownMenuItem
-                                                            variant={
-                                                                customer.status ===
-                                                                'active'
-                                                                    ? 'destructive'
-                                                                    : 'default'
-                                                            }
-                                                            onSelect={() =>
-                                                                setPending(
-                                                                    customer,
-                                                                )
-                                                            }
-                                                        >
-                                                            {customer.status ===
-                                                            'active'
-                                                                ? 'Suspend'
-                                                                : 'Reinstate'}
-                                                        </DropdownMenuItem>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-
-                        <PaginationNav paginator={customers} />
-                    </>
-                )}
+                <DataTable
+                    caption="Customers"
+                    columns={tableColumns}
+                    rows={customers.data}
+                    getRowKey={(customer) => customer.id}
+                    paginator={customers}
+                    empty={
+                        <EmptyState
+                            icon={Users}
+                            title="No customers found"
+                            description={
+                                isFiltered
+                                    ? 'No customer matches these filters. Try widening the search.'
+                                    : 'Customers appear here once someone registers on the storefront.'
+                            }
+                            action={
+                                isFiltered ? (
+                                    <Button variant="outline" onClick={clear}>
+                                        Clear filters
+                                    </Button>
+                                ) : undefined
+                            }
+                        />
+                    }
+                />
             </div>
 
             <ConfirmDialog

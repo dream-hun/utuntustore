@@ -4,6 +4,8 @@ import type {
     AdminSubscriptionRow,
     AdminVendorDetail,
 } from '@/components/admin/types';
+import type { DataTableColumn } from '@/components/data-table';
+import { DataTable } from '@/components/data-table';
 import { Money } from '@/components/money';
 import {
     OrderStatusBadge,
@@ -12,14 +14,6 @@ import {
 } from '@/components/status-badge';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import { formatDate } from '@/lib/format';
 import type { OrderStatus } from '@/types/marketplace';
@@ -33,6 +27,88 @@ interface RecentOrder {
     total: number;
     created_at: string | null;
 }
+
+const subscriptionColumns: DataTableColumn<AdminSubscriptionRow>[] = [
+    {
+        id: 'period',
+        header: 'Period',
+        cellClassName: 'text-xs whitespace-nowrap',
+        cell: (subscription) => (
+            <>
+                {formatDate(subscription.starts_at)} –{' '}
+                {formatDate(subscription.ends_at)}
+            </>
+        ),
+    },
+    {
+        id: 'status',
+        header: 'Status',
+        cellClassName: 'text-xs capitalize',
+        cell: (subscription) => subscription.status,
+    },
+    {
+        id: 'reference',
+        header: 'Reference',
+        cellClassName: 'text-xs',
+        cell: (subscription) => subscription.reference ?? '—',
+    },
+    {
+        id: 'recorded_by',
+        header: 'Recorded by',
+        cellClassName: 'text-xs',
+        cell: (subscription) => subscription.recorded_by ?? '—',
+    },
+    {
+        id: 'amount',
+        header: 'Amount',
+        align: 'end',
+        cell: (subscription) => (
+            <Money
+                amount={subscription.amount}
+                currency={subscription.currency}
+            />
+        ),
+    },
+];
+
+const recentOrderColumns: DataTableColumn<RecentOrder>[] = [
+    {
+        id: 'vendor_order',
+        header: 'Vendor order',
+        cellClassName: 'text-sm',
+        cell: (order) => order.order_number,
+    },
+    {
+        id: 'customer_order',
+        header: 'Customer order',
+        cellClassName: 'text-sm',
+        cell: (order) => (
+            <Link
+                href={`/admin/orders/${order.parent_order_id}`}
+                className="hover:underline"
+            >
+                {order.parent_order_number}
+            </Link>
+        ),
+    },
+    {
+        id: 'status',
+        header: 'Status',
+        cell: (order) => <OrderStatusBadge status={order.status} />,
+    },
+    {
+        id: 'placed',
+        header: 'Placed',
+        cellClassName: 'text-xs text-muted-foreground',
+        cell: (order) => formatDate(order.created_at),
+    },
+    {
+        id: 'total',
+        header: 'Total',
+        align: 'end',
+        cell: (order) => <Money amount={order.total} />,
+    },
+];
 
 export default function AdminVendorShow({
     vendor,
@@ -152,63 +228,18 @@ export default function AdminVendorShow({
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        {subscriptions.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
-                                No payments recorded for this shop.
-                            </p>
-                        ) : (
-                            <div className="overflow-x-auto">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Period</TableHead>
-                                            <TableHead>Status</TableHead>
-                                            <TableHead>Reference</TableHead>
-                                            <TableHead>Recorded by</TableHead>
-                                            <TableHead className="text-right">
-                                                Amount
-                                            </TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {subscriptions.map((subscription) => (
-                                            <TableRow key={subscription.id}>
-                                                <TableCell className="text-xs whitespace-nowrap">
-                                                    {formatDate(
-                                                        subscription.starts_at,
-                                                    )}{' '}
-                                                    –{' '}
-                                                    {formatDate(
-                                                        subscription.ends_at,
-                                                    )}
-                                                </TableCell>
-                                                <TableCell className="text-xs capitalize">
-                                                    {subscription.status}
-                                                </TableCell>
-                                                <TableCell className="text-xs">
-                                                    {subscription.reference ??
-                                                        '—'}
-                                                </TableCell>
-                                                <TableCell className="text-xs">
-                                                    {subscription.recorded_by ??
-                                                        '—'}
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    <Money
-                                                        amount={
-                                                            subscription.amount
-                                                        }
-                                                        currency={
-                                                            subscription.currency
-                                                        }
-                                                    />
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        )}
+                        <DataTable
+                            caption="Subscription history"
+                            bordered={false}
+                            columns={subscriptionColumns}
+                            rows={subscriptions}
+                            getRowKey={(subscription) => subscription.id}
+                            empty={
+                                <p className="text-sm text-muted-foreground">
+                                    No payments recorded for this shop.
+                                </p>
+                            }
+                        />
                     </CardContent>
                 </Card>
 
@@ -223,63 +254,18 @@ export default function AdminVendorShow({
                         </p>
                     </CardHeader>
                     <CardContent>
-                        {recentOrders.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
-                                No orders yet.
-                            </p>
-                        ) : (
-                            <div className="overflow-x-auto">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Vendor order</TableHead>
-                                            <TableHead>
-                                                Customer order
-                                            </TableHead>
-                                            <TableHead>Status</TableHead>
-                                            <TableHead>Placed</TableHead>
-                                            <TableHead className="text-right">
-                                                Total
-                                            </TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {recentOrders.map((order) => (
-                                            <TableRow key={order.id}>
-                                                <TableCell className="text-sm">
-                                                    {order.order_number}
-                                                </TableCell>
-                                                <TableCell className="text-sm">
-                                                    <Link
-                                                        href={`/admin/orders/${order.parent_order_id}`}
-                                                        className="hover:underline"
-                                                    >
-                                                        {
-                                                            order.parent_order_number
-                                                        }
-                                                    </Link>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <OrderStatusBadge
-                                                        status={order.status}
-                                                    />
-                                                </TableCell>
-                                                <TableCell className="text-xs text-muted-foreground">
-                                                    {formatDate(
-                                                        order.created_at,
-                                                    )}
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    <Money
-                                                        amount={order.total}
-                                                    />
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        )}
+                        <DataTable
+                            caption="Recent orders"
+                            bordered={false}
+                            columns={recentOrderColumns}
+                            rows={recentOrders}
+                            getRowKey={(order) => order.id}
+                            empty={
+                                <p className="text-sm text-muted-foreground">
+                                    No orders yet.
+                                </p>
+                            }
+                        />
                     </CardContent>
                 </Card>
             </div>

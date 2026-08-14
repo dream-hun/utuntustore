@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { FolderTree, MoreHorizontal, Plus } from 'lucide-react';
+import { FolderTree, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { AdminNav } from '@/components/admin/admin-nav';
 import { CategoryFormModal } from '@/components/admin/category-form-modal';
@@ -8,26 +8,14 @@ import type {
     CategoryParentOption,
 } from '@/components/admin/types';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import type { DataTableColumn } from '@/components/data-table';
+import { DataTable } from '@/components/data-table';
 import { EmptyState } from '@/components/empty-state';
-import { PaginationNav } from '@/components/pagination-nav';
+import { RowActions } from '@/components/row-actions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
+import { useTableFilters } from '@/hooks/use-table-filters';
 import AppLayout from '@/layouts/app-layout';
 import type { Paginated } from '@/types/marketplace';
 
@@ -40,10 +28,92 @@ export default function AdminCategories({
     filters: { search: string | null };
     parents: CategoryParentOption[];
 }) {
-    const [search, setSearch] = useState(filters.search ?? '');
     const [editing, setEditing] = useState<AdminCategoryRow | null>(null);
     const [creating, setCreating] = useState(false);
     const [deleting, setDeleting] = useState<AdminCategoryRow | null>(null);
+
+    const { values, set, commit, clear, isFiltered } = useTableFilters({
+        url: '/admin/categories',
+        filters,
+    });
+
+    const columns: DataTableColumn<AdminCategoryRow>[] = [
+        {
+            id: 'name',
+            header: 'Name',
+            cell: (category) => (
+                <>
+                    <p className="text-sm font-medium">{category.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                        {category.slug}
+                    </p>
+                </>
+            ),
+        },
+        {
+            id: 'parent',
+            header: 'Parent',
+            cell: (category) => (
+                <span className="text-sm text-muted-foreground">
+                    {category.parent?.name ?? '—'}
+                </span>
+            ),
+        },
+        {
+            id: 'products',
+            header: 'Products',
+            cell: (category) => (
+                <span className="text-sm">{category.products_count}</span>
+            ),
+        },
+        {
+            id: 'active',
+            header: 'Active',
+            cell: (category) =>
+                category.is_active ? (
+                    <Badge className="border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+                        Active
+                    </Badge>
+                ) : (
+                    <Badge variant="secondary">Hidden</Badge>
+                ),
+        },
+        {
+            id: 'actions',
+            header: 'Actions',
+            headerHidden: true,
+            headClassName: 'w-10',
+            cell: (category) => (
+                <RowActions
+                    rowLabel={category.name}
+                    groups={[
+                        {
+                            actions: [
+                                {
+                                    label: 'Edit',
+                                    icon: Pencil,
+                                    onSelect: () => setEditing(category),
+                                },
+                            ],
+                        },
+                        {
+                            actions: [
+                                {
+                                    label: 'Delete',
+                                    icon: Trash2,
+                                    destructive: true,
+                                    disabled:
+                                        category.products_count > 0 ||
+                                        category.children_count > 0,
+                                    onSelect: () => setDeleting(category),
+                                },
+                            ],
+                        },
+                    ]}
+                />
+            ),
+        },
+    ];
 
     return (
         <AppLayout
@@ -70,136 +140,65 @@ export default function AdminCategories({
                 <form
                     onSubmit={(event) => {
                         event.preventDefault();
-                        router.get(
-                            '/admin/categories',
-                            { search: search || undefined },
-                            {
-                                preserveState: true,
-                                preserveScroll: true,
-                                replace: true,
-                            },
-                        );
+                        commit();
                     }}
                     className="flex gap-2"
                 >
+                    <label htmlFor="category-search" className="sr-only">
+                        Search categories
+                    </label>
                     <Input
-                        value={search}
-                        onChange={(event) => setSearch(event.target.value)}
+                        id="category-search"
+                        type="search"
+                        value={values.search ?? ''}
+                        onChange={(event) => set('search', event.target.value)}
                         placeholder="Search categories"
                         className="w-60"
                     />
                     <Button type="submit" variant="outline">
                         Search
                     </Button>
+                    {isFiltered ? (
+                        <Button type="button" variant="ghost" onClick={clear}>
+                            Clear
+                        </Button>
+                    ) : null}
                 </form>
 
-                {categories.data.length === 0 ? (
-                    <EmptyState
-                        icon={FolderTree}
-                        title="No categories yet"
-                        description="Categories organise the storefront. Vendors pick one for each product."
-                        action={
-                            <Button onClick={() => setCreating(true)}>
-                                <Plus className="size-4" />
-                                New category
-                            </Button>
-                        }
-                    />
-                ) : (
-                    <>
-                        <div className="overflow-x-auto rounded-lg border">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Name</TableHead>
-                                        <TableHead>Parent</TableHead>
-                                        <TableHead>Products</TableHead>
-                                        <TableHead>Active</TableHead>
-                                        <TableHead className="w-10" />
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {categories.data.map((category) => (
-                                        <TableRow key={category.id}>
-                                            <TableCell>
-                                                <p className="text-sm font-medium">
-                                                    {category.name}
-                                                </p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {category.slug}
-                                                </p>
-                                            </TableCell>
-                                            <TableCell className="text-sm text-muted-foreground">
-                                                {category.parent?.name ?? '—'}
-                                            </TableCell>
-                                            <TableCell className="text-sm">
-                                                {category.products_count}
-                                            </TableCell>
-                                            <TableCell>
-                                                {category.is_active ? (
-                                                    <Badge className="border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
-                                                        Active
-                                                    </Badge>
-                                                ) : (
-                                                    <Badge variant="secondary">
-                                                        Hidden
-                                                    </Badge>
-                                                )}
-                                            </TableCell>
-                                            <TableCell>
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger
-                                                        asChild
-                                                    >
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                        >
-                                                            <MoreHorizontal className="size-4" />
-                                                            <span className="sr-only">
-                                                                Actions
-                                                            </span>
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end">
-                                                        <DropdownMenuItem
-                                                            onSelect={() =>
-                                                                setEditing(
-                                                                    category,
-                                                                )
-                                                            }
-                                                        >
-                                                            Edit
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuSeparator />
-                                                        <DropdownMenuItem
-                                                            variant="destructive"
-                                                            disabled={
-                                                                category.products_count >
-                                                                    0 ||
-                                                                category.children_count >
-                                                                    0
-                                                            }
-                                                            onSelect={() =>
-                                                                setDeleting(
-                                                                    category,
-                                                                )
-                                                            }
-                                                        >
-                                                            Delete
-                                                        </DropdownMenuItem>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-
-                        <PaginationNav paginator={categories} />
-                    </>
-                )}
+                <DataTable
+                    caption="Categories"
+                    columns={columns}
+                    rows={categories.data}
+                    getRowKey={(category) => category.id}
+                    paginator={categories}
+                    empty={
+                        <EmptyState
+                            icon={FolderTree}
+                            title={
+                                isFiltered
+                                    ? 'No categories found'
+                                    : 'No categories yet'
+                            }
+                            description={
+                                isFiltered
+                                    ? 'No category matches that search.'
+                                    : 'Categories organise the storefront. Vendors pick one for each product.'
+                            }
+                            action={
+                                isFiltered ? (
+                                    <Button variant="outline" onClick={clear}>
+                                        Clear search
+                                    </Button>
+                                ) : (
+                                    <Button onClick={() => setCreating(true)}>
+                                        <Plus className="size-4" />
+                                        New category
+                                    </Button>
+                                )
+                            }
+                        />
+                    }
+                />
             </div>
 
             <CategoryFormModal

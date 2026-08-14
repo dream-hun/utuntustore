@@ -1,23 +1,19 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { MoreHorizontal, Store } from 'lucide-react';
+import { Ban, Check, Eye, RotateCcw, Store, X } from 'lucide-react';
 import { useState } from 'react';
 import { AdminNav } from '@/components/admin/admin-nav';
 import type { AdminVendorRow } from '@/components/admin/types';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import type { DataTableColumn } from '@/components/data-table';
+import { DataTable } from '@/components/data-table';
 import { EmptyState } from '@/components/empty-state';
-import { PaginationNav } from '@/components/pagination-nav';
+import type { RowAction } from '@/components/row-actions';
+import { RowActions } from '@/components/row-actions';
 import {
     SubscriptionStatusBadge,
     VendorStatusBadge,
 } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import {
     Select,
@@ -26,14 +22,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
+import { useTableFilters } from '@/hooks/use-table-filters';
 import AppLayout from '@/layouts/app-layout';
 import { formatDate } from '@/lib/format';
 import type { Paginated } from '@/types/marketplace';
@@ -77,24 +66,15 @@ export default function AdminVendors({
         subscription_status: string | null;
     };
 }) {
-    const [search, setSearch] = useState(filters.search ?? '');
     const [pending, setPending] = useState<{
         vendor: AdminVendorRow;
         action: Action;
     } | null>(null);
 
-    const apply = (next: Record<string, string | undefined>) => {
-        router.get(
-            '/admin/vendors',
-            {
-                search: search || undefined,
-                status: filters.status ?? undefined,
-                subscription_status: filters.subscription_status ?? undefined,
-                ...next,
-            },
-            { preserveState: true, preserveScroll: true, replace: true },
-        );
-    };
+    const { values, set, commit, clear, isFiltered } = useTableFilters({
+        url: '/admin/vendors',
+        filters,
+    });
 
     const moderate = () => {
         if (!pending) {
@@ -107,6 +87,121 @@ export default function AdminVendors({
             { preserveScroll: true, onFinish: () => setPending(null) },
         );
     };
+
+    /**
+     * Which moderation steps a shop is eligible for depends entirely on where it
+     * already sits, so the menu is built from the status rather than rendering
+     * every item and disabling most of them.
+     */
+    const moderationActions = (vendor: AdminVendorRow): RowAction[] => {
+        const stage = (action: Action) => () => setPending({ vendor, action });
+
+        if (vendor.status === 'pending') {
+            return [
+                {
+                    label: 'Approve',
+                    icon: Check,
+                    onSelect: stage('approved'),
+                },
+                {
+                    label: 'Reject',
+                    icon: X,
+                    destructive: true,
+                    onSelect: stage('rejected'),
+                },
+            ];
+        }
+
+        if (vendor.status === 'approved') {
+            return [
+                {
+                    label: 'Suspend',
+                    icon: Ban,
+                    destructive: true,
+                    onSelect: stage('suspended'),
+                },
+            ];
+        }
+
+        return [
+            {
+                label: 'Reinstate',
+                icon: RotateCcw,
+                onSelect: stage('approved'),
+            },
+        ];
+    };
+
+    const columns: DataTableColumn<AdminVendorRow>[] = [
+        {
+            id: 'shop',
+            header: 'Shop',
+            cell: (vendor) => (
+                <>
+                    <Link
+                        href={`/admin/vendors/${vendor.id}`}
+                        className="text-sm font-medium hover:underline"
+                    >
+                        {vendor.shop_name}
+                    </Link>
+                    <p className="text-xs text-muted-foreground">
+                        {vendor.owner_name} · {vendor.phone}
+                    </p>
+                </>
+            ),
+        },
+        {
+            id: 'status',
+            header: 'Status',
+            cell: (vendor) => <VendorStatusBadge status={vendor.status} />,
+        },
+        {
+            id: 'subscription',
+            header: 'Subscription',
+            cell: (vendor) => (
+                <SubscriptionStatusBadge status={vendor.subscription_status} />
+            ),
+        },
+        {
+            id: 'products',
+            header: 'Products',
+            cell: (vendor) => (
+                <span className="text-sm">{vendor.products_count}</span>
+            ),
+        },
+        {
+            id: 'joined',
+            header: 'Joined',
+            cell: (vendor) => (
+                <span className="text-xs text-muted-foreground">
+                    {formatDate(vendor.created_at)}
+                </span>
+            ),
+        },
+        {
+            id: 'actions',
+            header: 'Actions',
+            headerHidden: true,
+            headClassName: 'w-10',
+            cell: (vendor) => (
+                <RowActions
+                    rowLabel={vendor.shop_name}
+                    groups={[
+                        {
+                            actions: [
+                                {
+                                    label: 'View',
+                                    icon: Eye,
+                                    href: `/admin/vendors/${vendor.id}`,
+                                },
+                            ],
+                        },
+                        { actions: moderationActions(vendor) },
+                    ]}
+                />
+            ),
+        },
+    ];
 
     return (
         <AppLayout
@@ -128,13 +223,20 @@ export default function AdminVendors({
                     <form
                         onSubmit={(event) => {
                             event.preventDefault();
-                            apply({});
+                            commit();
                         }}
                         className="flex gap-2"
                     >
+                        <label htmlFor="vendor-search" className="sr-only">
+                            Search vendors
+                        </label>
                         <Input
-                            value={search}
-                            onChange={(event) => setSearch(event.target.value)}
+                            id="vendor-search"
+                            type="search"
+                            value={values.search ?? ''}
+                            onChange={(event) =>
+                                set('search', event.target.value)
+                            }
                             placeholder="Shop, owner or phone"
                             className="w-60"
                         />
@@ -144,12 +246,15 @@ export default function AdminVendors({
                     </form>
 
                     <Select
-                        value={filters.status ?? ANY}
+                        value={values.status ?? ANY}
                         onValueChange={(value) =>
-                            apply({ status: value === ANY ? undefined : value })
+                            set('status', value === ANY ? null : value, true)
                         }
                     >
-                        <SelectTrigger className="w-44">
+                        <SelectTrigger
+                            className="w-44"
+                            aria-label="Shop status"
+                        >
                             <SelectValue placeholder="Any status" />
                         </SelectTrigger>
                         <SelectContent>
@@ -162,15 +267,19 @@ export default function AdminVendors({
                     </Select>
 
                     <Select
-                        value={filters.subscription_status ?? ANY}
+                        value={values.subscription_status ?? ANY}
                         onValueChange={(value) =>
-                            apply({
-                                subscription_status:
-                                    value === ANY ? undefined : value,
-                            })
+                            set(
+                                'subscription_status',
+                                value === ANY ? null : value,
+                                true,
+                            )
                         }
                     >
-                        <SelectTrigger className="w-48">
+                        <SelectTrigger
+                            className="w-48"
+                            aria-label="Subscription status"
+                        >
                             <SelectValue placeholder="Any subscription" />
                         </SelectTrigger>
                         <SelectContent>
@@ -183,171 +292,39 @@ export default function AdminVendors({
                             <SelectItem value="none">None</SelectItem>
                         </SelectContent>
                     </Select>
+
+                    {isFiltered ? (
+                        <Button type="button" variant="ghost" onClick={clear}>
+                            Clear filters
+                        </Button>
+                    ) : null}
                 </div>
 
-                {vendors.data.length === 0 ? (
-                    <EmptyState
-                        icon={Store}
-                        title="No vendors found"
-                        description="Try a different filter."
-                    />
-                ) : (
-                    <>
-                        <div className="overflow-x-auto rounded-lg border">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Shop</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead>Subscription</TableHead>
-                                        <TableHead>Products</TableHead>
-                                        <TableHead>Joined</TableHead>
-                                        <TableHead className="w-10" />
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {vendors.data.map((vendor) => (
-                                        <TableRow key={vendor.id}>
-                                            <TableCell>
-                                                <Link
-                                                    href={`/admin/vendors/${vendor.id}`}
-                                                    className="text-sm font-medium hover:underline"
-                                                >
-                                                    {vendor.shop_name}
-                                                </Link>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {vendor.owner_name} ·{' '}
-                                                    {vendor.phone}
-                                                </p>
-                                            </TableCell>
-                                            <TableCell>
-                                                <VendorStatusBadge
-                                                    status={vendor.status}
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                <SubscriptionStatusBadge
-                                                    status={
-                                                        vendor.subscription_status
-                                                    }
-                                                />
-                                            </TableCell>
-                                            <TableCell className="text-sm">
-                                                {vendor.products_count}
-                                            </TableCell>
-                                            <TableCell className="text-xs text-muted-foreground">
-                                                {formatDate(vendor.created_at)}
-                                            </TableCell>
-                                            <TableCell>
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger
-                                                        asChild
-                                                    >
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                        >
-                                                            <MoreHorizontal className="size-4" />
-                                                            <span className="sr-only">
-                                                                Actions
-                                                            </span>
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end">
-                                                        <DropdownMenuItem
-                                                            asChild
-                                                        >
-                                                            <Link
-                                                                href={`/admin/vendors/${vendor.id}`}
-                                                            >
-                                                                View
-                                                            </Link>
-                                                        </DropdownMenuItem>
-
-                                                        {vendor.status ===
-                                                        'pending' ? (
-                                                            <>
-                                                                <DropdownMenuSeparator />
-                                                                <DropdownMenuItem
-                                                                    onSelect={() =>
-                                                                        setPending(
-                                                                            {
-                                                                                vendor,
-                                                                                action: 'approved',
-                                                                            },
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    Approve
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuItem
-                                                                    variant="destructive"
-                                                                    onSelect={() =>
-                                                                        setPending(
-                                                                            {
-                                                                                vendor,
-                                                                                action: 'rejected',
-                                                                            },
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    Reject
-                                                                </DropdownMenuItem>
-                                                            </>
-                                                        ) : null}
-
-                                                        {vendor.status ===
-                                                        'approved' ? (
-                                                            <>
-                                                                <DropdownMenuSeparator />
-                                                                <DropdownMenuItem
-                                                                    variant="destructive"
-                                                                    onSelect={() =>
-                                                                        setPending(
-                                                                            {
-                                                                                vendor,
-                                                                                action: 'suspended',
-                                                                            },
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    Suspend
-                                                                </DropdownMenuItem>
-                                                            </>
-                                                        ) : null}
-
-                                                        {vendor.status ===
-                                                            'suspended' ||
-                                                        vendor.status ===
-                                                            'rejected' ? (
-                                                            <>
-                                                                <DropdownMenuSeparator />
-                                                                <DropdownMenuItem
-                                                                    onSelect={() =>
-                                                                        setPending(
-                                                                            {
-                                                                                vendor,
-                                                                                action: 'approved',
-                                                                            },
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    Reinstate
-                                                                </DropdownMenuItem>
-                                                            </>
-                                                        ) : null}
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-
-                        <PaginationNav paginator={vendors} />
-                    </>
-                )}
+                <DataTable
+                    caption="Vendors"
+                    columns={columns}
+                    rows={vendors.data}
+                    getRowKey={(vendor) => vendor.id}
+                    paginator={vendors}
+                    empty={
+                        <EmptyState
+                            icon={Store}
+                            title="No vendors found"
+                            description={
+                                isFiltered
+                                    ? 'No shop matches these filters.'
+                                    : 'Shops appear here once someone applies to sell on the marketplace.'
+                            }
+                            action={
+                                isFiltered ? (
+                                    <Button variant="outline" onClick={clear}>
+                                        Clear filters
+                                    </Button>
+                                ) : undefined
+                            }
+                        />
+                    }
+                />
             </div>
 
             <ConfirmDialog

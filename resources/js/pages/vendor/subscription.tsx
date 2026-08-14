@@ -1,18 +1,12 @@
 import { Deferred, Head } from '@inertiajs/react';
 import { Banknote, Info } from 'lucide-react';
+import type { DataTableColumn } from '@/components/data-table';
+import { DataTable } from '@/components/data-table';
 import { Money } from '@/components/money';
 import { SubscriptionStatusBadge } from '@/components/status-badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
 import { VendorNav } from '@/components/vendor/vendor-nav';
 import AppLayout from '@/layouts/app-layout';
 import { formatDate, formatRelativeDays } from '@/lib/format';
@@ -39,6 +33,45 @@ const methodLabels: Record<SubscriptionPaymentMethod, string> = {
     bank_transfer: 'Bank transfer',
     cash: 'Cash',
 };
+
+const paymentColumns: DataTableColumn<Payment>[] = [
+    {
+        id: 'period',
+        header: 'Period',
+        cellClassName: 'text-xs whitespace-nowrap',
+        cell: (payment) => (
+            <>
+                {formatDate(payment.starts_at)} – {formatDate(payment.ends_at)}
+            </>
+        ),
+    },
+    {
+        id: 'method',
+        header: 'Method',
+        cellClassName: 'text-xs',
+        cell: (payment) => methodLabels[payment.payment_method],
+    },
+    {
+        id: 'reference',
+        header: 'Reference',
+        cellClassName: 'text-xs',
+        cell: (payment) => payment.reference ?? '—',
+    },
+    {
+        id: 'paid',
+        header: 'Paid',
+        cellClassName: 'text-xs',
+        cell: (payment) => formatDate(payment.paid_at),
+    },
+    {
+        id: 'amount',
+        header: 'Amount',
+        align: 'end',
+        cell: (payment) => (
+            <Money amount={payment.amount} currency={payment.currency} />
+        ),
+    },
+];
 
 export default function VendorSubscriptionPage({
     subscription,
@@ -191,69 +224,18 @@ export default function VendorSubscriptionPage({
                                 </div>
                             }
                         >
-                            {(payments ?? []).length === 0 ? (
-                                <p className="text-sm text-muted-foreground">
-                                    No payments recorded yet.
-                                </p>
-                            ) : (
-                                <div className="overflow-x-auto">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Period</TableHead>
-                                                <TableHead>Method</TableHead>
-                                                <TableHead>Reference</TableHead>
-                                                <TableHead>Paid</TableHead>
-                                                <TableHead className="text-right">
-                                                    Amount
-                                                </TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {(payments ?? []).map((payment) => (
-                                                <TableRow key={payment.id}>
-                                                    <TableCell className="text-xs whitespace-nowrap">
-                                                        {formatDate(
-                                                            payment.starts_at,
-                                                        )}{' '}
-                                                        –{' '}
-                                                        {formatDate(
-                                                            payment.ends_at,
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell className="text-xs">
-                                                        {
-                                                            methodLabels[
-                                                                payment
-                                                                    .payment_method
-                                                            ]
-                                                        }
-                                                    </TableCell>
-                                                    <TableCell className="text-xs">
-                                                        {payment.reference ??
-                                                            '—'}
-                                                    </TableCell>
-                                                    <TableCell className="text-xs">
-                                                        {formatDate(
-                                                            payment.paid_at,
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell className="text-right">
-                                                        <Money
-                                                            amount={
-                                                                payment.amount
-                                                            }
-                                                            currency={
-                                                                payment.currency
-                                                            }
-                                                        />
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-                            )}
+                            <DataTable
+                                caption="Payment history"
+                                bordered={false}
+                                columns={paymentColumns}
+                                rows={payments}
+                                getRowKey={(payment) => payment.id}
+                                empty={
+                                    <p className="text-sm text-muted-foreground">
+                                        No payments recorded yet.
+                                    </p>
+                                }
+                            />
                         </Deferred>
                     </CardContent>
                 </Card>
