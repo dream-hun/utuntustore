@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use App\Enums\UserRole;
+use App\Enums\UserStatus;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Config;
@@ -42,6 +43,15 @@ final class DatabaseSeeder extends Seeder
      *
      * The password comes from the environment so a real deployment sets its own; the
      * local fallback exists only so `migrate:fresh --seed` gives a working login.
+     *
+     * Every attribute is written out here rather than leaning on `User::factory()`,
+     * because this is the one seeder a production deploy actually runs. Factories
+     * call `fake()`, which lives in `fakerphp/faker` — a require-dev package absent
+     * from any `composer install --no-dev` install. Going through the factory makes
+     * this line fatal on a production host with
+     * `Call to undefined function Database\Factories\fake()`, and the failure lands
+     * after the reference-data seeders have already committed, so the database looks
+     * half-seeded and simply has no way in. Keep this path free of `factory()`.
      */
     private function seedFirstAdmin(): void
     {
@@ -51,11 +61,12 @@ final class DatabaseSeeder extends Seeder
             return;
         }
 
-        User::factory()->create([
+        User::query()->create([
             'name' => Config::string('marketplace.admin.name'),
             'email' => $email,
             'password' => Config::string('marketplace.admin.password'),
             'role' => UserRole::Admin,
+            'status' => UserStatus::Active,
             'email_verified_at' => now(),
         ]);
     }
