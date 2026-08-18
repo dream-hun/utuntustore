@@ -33,3 +33,21 @@ Write these on one line, which is what the rest of the codebase already does:
     'description' => $this->filled('description') ? $this->string('description')->toString() : null,
 
 If the truthy branch is too long to fit, extract it to a private method rather than splitting the ternary (see `SecurityController::passkeys()`).
+
+## Deploying to production (Hostinger shared host)
+Target: `ssh -p 65002 u166205141@145.223.89.19`, app root `~/domains/utuntutwubwenge.co.rw/public_html`, live at https://utuntutwubwenge.co.rw.
+
+There is no git and no node/npm on that host, so deploys are **rsync from a local checkout**, never `git pull` on the server:
+
+1. Locally: `git pull --ff-only`, then `npm run build` (`public/build` is gitignored and must be built here — the server cannot build it).
+2. `rsync -az --delete-after -e "ssh -p 65002"` each changed path. Sync whatever the diff touched — `app/`, `routes/`, `database/seeders/`, `resources/`, `tests/`, `.ai/` — and always `public/build/`. Add `vendor/` only when `composer.lock` changed.
+3. Never rsync `.env` or `storage/` — storage holds uploaded media and logs.
+4. On the server: `php artisan optimize:clear && php artisan optimize`.
+
+Two host quirks that break things if forgotten:
+
+- The whole project lives in `public_html`, which is itself the Apache docroot. The root `.htaccess` rewrites every request into `public/`; without it `/` returns 403 and `.env` would be web-reachable.
+- `public/storage` is a hand-made `ln -s ../storage/app/public`. PHP's `symlink()` is in this host's `disable_functions`, so `php artisan storage:link` cannot recreate it — if the link is lost, restore it with `ln -s` over SSH.
+- Hostinger's CDN (`hcdn`) caches `/build/assets/*` for 7 days but serves HTML as `DYNAMIC`/`no-cache`. Content-hashed filenames make that safe, so no purge is needed; superseded chunks keep returning 200 from the edge for a while even though they are gone from disk. Verify a deploy by checking the hashes in the served HTML, not by expecting the old asset to 404.
+
+Do not run `php artisan db:seed` on production. Reference data (5 provinces / 30 districts / 416 sectors), settings and the admin are already seeded; an empty catalog is intended, since demo products live in the separately-invoked `DemoDataSeeder`.
