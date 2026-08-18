@@ -55,7 +55,7 @@ export function SectionHeader({
             {viewAllHref ? (
                 <Link
                     href={viewAllHref}
-                    className="shrink-0 rounded text-sm font-semibold text-primary transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                    className="inline-flex min-h-6 shrink-0 items-center rounded text-sm font-semibold text-primary transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                 >
                     {viewAllLabel}
                 </Link>

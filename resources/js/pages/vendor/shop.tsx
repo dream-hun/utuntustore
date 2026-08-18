@@ -1,5 +1,5 @@
 import { Head, useForm } from '@inertiajs/react';
-import { ImageOff } from 'lucide-react';
+import { Image } from '@/components/image';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -180,15 +180,11 @@ export default function VendorShopProfile({ shop }: { shop: Shop }) {
                             <div className="grid gap-2">
                                 <Label htmlFor="logo">Logo</Label>
                                 <div className="flex size-24 items-center justify-center overflow-hidden rounded-lg bg-muted">
-                                    {shop.logo_url ? (
-                                        <img
-                                            src={shop.logo_url}
-                                            alt="Shop logo"
-                                            className="size-full object-cover"
-                                        />
-                                    ) : (
-                                        <ImageOff className="size-6 text-muted-foreground" />
-                                    )}
+                                    <Image
+                                        src={shop.logo_url}
+                                        alt="Shop logo"
+                                        className="size-full object-cover"
+                                    />
                                 </div>
                                 <Input
                                     id="logo"
@@ -207,15 +203,11 @@ export default function VendorShopProfile({ shop }: { shop: Shop }) {
                             <div className="grid gap-2">
                                 <Label htmlFor="banner">Banner</Label>
                                 <div className="flex h-24 w-full items-center justify-center overflow-hidden rounded-lg bg-muted">
-                                    {shop.banner_url ? (
-                                        <img
-                                            src={shop.banner_url}
-                                            alt="Shop banner"
-                                            className="size-full object-cover"
-                                        />
-                                    ) : (
-                                        <ImageOff className="size-6 text-muted-foreground" />
-                                    )}
+                                    <Image
+                                        src={shop.banner_url}
+                                        alt="Shop banner"
+                                        className="size-full object-cover"
+                                    />
                                 </div>
                                 <Input
                                     id="banner"

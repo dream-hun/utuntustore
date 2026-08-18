@@ -11,6 +11,7 @@ use App\Http\Controllers\Storefront\Concerns\PresentsCatalog;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Review;
+use App\Support\MediaUrl;
 use Closure;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Inertia\Inertia;
@@ -75,8 +76,8 @@ final class ProductController extends Controller
                 'images' => $product->getMedia('images')
                     ->map(fn (Media $media): array => [
                         'id' => (string) $media->uuid,
-                        'thumb_url' => $media->getUrl('thumb'),
-                        'web_url' => $media->getUrl('web'),
+                        'thumb_url' => MediaUrl::for($media, 'thumb'),
+                        'web_url' => MediaUrl::for($media, 'web'),
                         'alt' => $media->name,
                     ])
                     ->values()

@@ -6,6 +6,7 @@ namespace App\Actions\Cart;
 
 use App\Models\Cart;
 use App\Models\CartItem;
+use App\Support\MediaUrl;
 use Illuminate\Support\Facades\Config;
 
 /**
@@ -58,7 +59,7 @@ final readonly class BuildCartPreview
             'id' => $item->uuid,
             'name' => $item->product->name,
             'slug' => $item->product->slug,
-            'image_url' => $item->product->getFirstMediaUrl('images', 'thumb') ?: null,
+            'image_url' => MediaUrl::fromCollection($item->product, 'images', 'thumb'),
             'vendor_name' => $item->product->vendor->shop_name,
             'variant_name' => $variant?->name,
             'quantity' => $item->quantity,

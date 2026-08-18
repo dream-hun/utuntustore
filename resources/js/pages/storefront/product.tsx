@@ -1,7 +1,6 @@
 import { Deferred, Head, Link, useForm } from '@inertiajs/react';
 import {
     Banknote,
-    ImageOff,
     MessageSquare,
     Minus,
     Package,
@@ -10,6 +9,7 @@ import {
     Truck,
 } from 'lucide-react';
 import { useState } from 'react';
+import { Image } from '@/components/image';
 import { Money } from '@/components/money';
 import { ProductGrid } from '@/components/storefront/product-card';
 import type { StorefrontProduct } from '@/components/storefront/product-card';
@@ -224,9 +224,10 @@ export default function ProductPage({
                                                 : 'opacity-70 hover:opacity-100',
                                         )}
                                     >
-                                        <img
+                                        <Image
                                             src={image.thumb_url}
                                             alt=""
+                                            iconClassName="size-5"
                                             className="size-full object-cover"
                                         />
                                     </button>
@@ -236,20 +237,13 @@ export default function ProductPage({
                     ) : null}
 
                     <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-cream">
-                        {activeImage ? (
-                            <img
-                                src={activeImage}
-                                alt={product.name}
-                                className="size-full object-cover"
-                            />
-                        ) : (
-                            <div className="flex size-full items-center justify-center text-muted-foreground">
-                                <ImageOff
-                                    className="size-12"
-                                    aria-hidden="true"
-                                />
-                            </div>
-                        )}
+                        <Image
+                            src={activeImage}
+                            alt={product.name}
+                            priority
+                            iconClassName="size-12"
+                            className="size-full object-cover"
+                        />
 
                         {isOnSale ? (
                             <span className="absolute top-4 left-4 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
@@ -431,15 +425,13 @@ export default function ProductPage({
                                 aria-label={`Visit ${vendor.shop_name}`}
                                 className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-2xl bg-cream transition hover:ring-2 hover:ring-primary"
                             >
-                                {vendor.logo_url ? (
-                                    <img
-                                        src={vendor.logo_url}
-                                        alt=""
-                                        className="size-full object-cover"
-                                    />
-                                ) : (
-                                    <Store className="size-5 text-muted-foreground" />
-                                )}
+                                <Image
+                                    src={vendor.logo_url}
+                                    alt=""
+                                    icon={Store}
+                                    iconClassName="size-5"
+                                    className="size-full object-cover"
+                                />
                             </Link>
                             <div className="min-w-0 flex-1">
                                 <Link

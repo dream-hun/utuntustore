@@ -11,6 +11,7 @@ use App\Http\Requests\Storefront\CatalogFilterRequest;
 use App\Models\Product;
 use App\Models\Vendor;
 use App\Models\VendorDeliveryArea;
+use App\Support\MediaUrl;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -43,7 +44,7 @@ final class VendorController extends Controller
                     ...$this->vendorCard($vendor),
                     'description' => $vendor->description,
                     'delivery_notes' => $vendor->delivery_notes,
-                    'banner_url' => $vendor->getFirstMediaUrl('banner', 'web') ?: null,
+                    'banner_url' => MediaUrl::fromCollection($vendor, 'banner', 'web'),
                     'phone' => $vendor->phone,
                     'email' => $vendor->email,
                 ];
