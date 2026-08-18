@@ -1,6 +1,7 @@
 import { Deferred, Head } from '@inertiajs/react';
 import { PackageSearch, Store, Truck } from 'lucide-react';
 import { EmptyState } from '@/components/empty-state';
+import { Image } from '@/components/image';
 import { Money } from '@/components/money';
 import { PaginationNav } from '@/components/pagination-nav';
 import { ProductGrid } from '@/components/storefront/product-card';
@@ -50,9 +51,10 @@ export default function VendorShop({
                 <div className="relative h-44 overflow-hidden rounded-3xl bg-cream sm:h-60">
                     {vendor.banner_url ? (
                         <>
-                            <img
+                            <Image
                                 src={vendor.banner_url}
                                 alt=""
+                                priority
                                 className="size-full object-cover"
                             />
                             <div className="absolute inset-0 bg-gradient-to-r from-ink/50 to-transparent" />
@@ -64,18 +66,13 @@ export default function VendorShop({
             <div className="mx-auto w-full max-w-[1400px] px-4 pb-12 lg:px-8 lg:pb-16">
                 <header className="-mt-12 mb-12 flex flex-wrap items-end gap-5 border-b border-border pb-8">
                     <span className="grid size-24 shrink-0 place-items-center overflow-hidden rounded-2xl border-4 border-background bg-cream">
-                        {vendor.logo_url ? (
-                            <img
-                                src={vendor.logo_url}
-                                alt=""
-                                className="size-full object-cover"
-                            />
-                        ) : (
-                            <Store
-                                className="size-8 text-muted-foreground"
-                                aria-hidden="true"
-                            />
-                        )}
+                        <Image
+                            src={vendor.logo_url}
+                            alt=""
+                            icon={Store}
+                            iconClassName="size-8"
+                            className="size-full object-cover"
+                        />
                     </span>
 
                     <div className="min-w-0 flex-1 pb-1">

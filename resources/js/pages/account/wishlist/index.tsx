@@ -1,7 +1,8 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { Heart, ImageOff, ShoppingCart, Trash2 } from 'lucide-react';
+import { Heart, ShoppingCart, Trash2 } from 'lucide-react';
 import { AccountNav } from '@/components/account/account-nav';
 import { EmptyState } from '@/components/empty-state';
+import { Image } from '@/components/image';
 import { Money } from '@/components/money';
 import { PaginationNav } from '@/components/pagination-nav';
 import { Button } from '@/components/ui/button';
@@ -79,22 +80,15 @@ export default function AccountWishlist({
                                             })}
                                         >
                                             <div className="aspect-square w-full bg-muted">
-                                                {item.product
-                                                    .primary_image_url ? (
-                                                    <img
-                                                        src={
-                                                            item.product
-                                                                .primary_image_url
-                                                        }
-                                                        alt={item.product.name}
-                                                        className="size-full object-cover"
-                                                        loading="lazy"
-                                                    />
-                                                ) : (
-                                                    <div className="flex size-full items-center justify-center text-muted-foreground">
-                                                        <ImageOff className="size-8" />
-                                                    </div>
-                                                )}
+                                                <Image
+                                                    src={
+                                                        item.product
+                                                            .primary_image_url
+                                                    }
+                                                    alt={item.product.name}
+                                                    iconClassName="size-8"
+                                                    className="size-full object-cover"
+                                                />
                                             </div>
                                         </Link>
 

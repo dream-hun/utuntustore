@@ -10,6 +10,7 @@ use App\Support\Checkout\CheckoutLine;
 use App\Support\Checkout\CheckoutProblem;
 use App\Support\Checkout\CheckoutQuote;
 use App\Support\Checkout\VendorQuote;
+use App\Support\MediaUrl;
 
 /**
  * Serializes a CheckoutQuote for the checkout screen.
@@ -78,7 +79,7 @@ trait PresentsCheckout
             'name' => $line->name(),
             'slug' => $line->product->slug,
             'variant_name' => $line->variantName(),
-            'image_url' => $line->product->getFirstMediaUrl('images', 'thumb') ?: null,
+            'image_url' => MediaUrl::fromCollection($line->product, 'images', 'thumb'),
             'quantity' => $line->quantity,
             'unit_price' => $line->unitPrice,
             'subtotal' => $line->subtotal,

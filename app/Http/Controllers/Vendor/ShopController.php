@@ -8,6 +8,7 @@ use App\Actions\Vendor\UpdateShopProfile;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Vendor\UpdateShopRequest;
 use App\Models\Vendor;
+use App\Support\MediaUrl;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -34,8 +35,8 @@ final class ShopController extends Controller
                 'email' => $vendor->email,
                 'delivery_notes' => $vendor->delivery_notes,
                 'status' => $vendor->status->value,
-                'logo_url' => $vendor->getFirstMediaUrl('logo', 'thumb') ?: null,
-                'banner_url' => $vendor->getFirstMediaUrl('banner', 'web') ?: null,
+                'logo_url' => MediaUrl::fromCollection($vendor, 'logo', 'thumb'),
+                'banner_url' => MediaUrl::fromCollection($vendor, 'banner', 'web'),
             ],
         ]);
     }

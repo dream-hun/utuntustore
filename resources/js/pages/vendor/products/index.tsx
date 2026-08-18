@@ -1,19 +1,12 @@
 import { Deferred, Head, router, useForm, usePage } from '@inertiajs/react';
-import {
-    Eye,
-    EyeOff,
-    ImageOff,
-    Package,
-    Pencil,
-    Plus,
-    Trash2,
-} from 'lucide-react';
+import { Eye, EyeOff, Package, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import type { DataTableColumn } from '@/components/data-table';
 import { DataTable } from '@/components/data-table';
 import { EmptyState } from '@/components/empty-state';
 import { FormModal } from '@/components/form-modal';
+import { Image } from '@/components/image';
 import InputError from '@/components/input-error';
 import { Money } from '@/components/money';
 import { RowActions } from '@/components/row-actions';
@@ -166,18 +159,12 @@ export default function VendorProducts({
             cell: (product) => (
                 <div className="flex items-center gap-3">
                     <div className="size-10 shrink-0 overflow-hidden rounded-md bg-muted">
-                        {product.images[0] ? (
-                            <img
-                                src={product.images[0].thumb_url}
-                                alt=""
-                                className="size-full object-cover"
-                            />
-                        ) : (
-                            <div className="flex size-full items-center justify-center text-muted-foreground">
-                                <ImageOff className="size-4" />
-                                <span className="sr-only">No image</span>
-                            </div>
-                        )}
+                        <Image
+                            src={product.images[0]?.thumb_url}
+                            alt=""
+                            iconClassName="size-4"
+                            className="size-full object-cover"
+                        />
                     </div>
                     <div className="min-w-0">
                         <p className="truncate text-sm font-medium">

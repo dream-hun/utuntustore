@@ -16,6 +16,7 @@ use App\Models\CartItem;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Support\Cast;
+use App\Support\MediaUrl;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -185,7 +186,7 @@ final class CartController extends Controller
                 'id' => $item->product->uuid,
                 'name' => $item->product->name,
                 'slug' => $item->product->slug,
-                'image_url' => $item->product->getFirstMediaUrl('images', 'thumb') ?: null,
+                'image_url' => MediaUrl::fromCollection($item->product, 'images', 'thumb'),
             ],
             'variant' => $variant === null ? null : [
                 'id' => $variant->uuid,

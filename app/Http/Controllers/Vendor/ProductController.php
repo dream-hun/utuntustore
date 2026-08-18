@@ -14,6 +14,7 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\Vendor;
 use App\Support\Cast;
+use App\Support\MediaUrl;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -148,8 +149,8 @@ final class ProductController extends Controller
             'images' => $product->getMedia('images')
                 ->map(fn (Media $media): array => [
                     'id' => $media->uuid,
-                    'url' => $media->getUrl(),
-                    'thumb_url' => $media->hasGeneratedConversion('thumb') ? $media->getUrl('thumb') : $media->getUrl(),
+                    'url' => MediaUrl::for($media),
+                    'thumb_url' => MediaUrl::for($media, 'thumb'),
                 ])
                 ->all(),
         ];

@@ -1,6 +1,7 @@
 import { Link, router, usePage } from '@inertiajs/react';
-import { ImageOff, Minus, Plus } from 'lucide-react';
+import { Minus, Plus } from 'lucide-react';
 import { useEffect } from 'react';
+import { Image } from '@/components/image';
 import { Money } from '@/components/money';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -158,17 +159,12 @@ export function CartDrawer() {
                                         onClick={closeCartDrawer}
                                         className="h-24 w-20 shrink-0 overflow-hidden rounded-2xl bg-cream"
                                     >
-                                        {item.image_url ? (
-                                            <img
-                                                src={item.image_url}
-                                                alt={item.name}
-                                                className="size-full object-cover"
-                                            />
-                                        ) : (
-                                            <span className="flex size-full items-center justify-center text-muted-foreground">
-                                                <ImageOff className="size-5" />
-                                            </span>
-                                        )}
+                                        <Image
+                                            src={item.image_url}
+                                            alt={item.name}
+                                            iconClassName="size-5"
+                                            className="size-full object-cover"
+                                        />
                                     </Link>
 
                                     <div className="flex min-w-0 flex-1 flex-col justify-between gap-3">

@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Storefront\Concerns;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\Vendor;
+use App\Support\MediaUrl;
 
 /**
  * The shapes every storefront screen serializes a product, vendor or category into.
@@ -28,7 +29,7 @@ trait PresentsCatalog
             'price' => $product->price,
             'compare_at_price' => $product->compare_at_price,
             'currency' => $product->currency,
-            'primary_image_url' => $product->getFirstMediaUrl('images', 'thumb') ?: null,
+            'primary_image_url' => MediaUrl::fromCollection($product, 'images', 'thumb'),
             'in_stock' => $product->isInStock(),
             'vendor' => $this->vendorRef($product->vendor),
         ];
@@ -59,7 +60,7 @@ trait PresentsCatalog
     {
         return [
             ...$this->vendorRef($vendor),
-            'logo_url' => $vendor->getFirstMediaUrl('logo', 'thumb') ?: null,
+            'logo_url' => MediaUrl::fromCollection($vendor, 'logo', 'thumb'),
             'can_sell' => $vendor->canSell(),
             'description' => $vendor->description,
         ];

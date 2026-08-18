@@ -14,6 +14,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Account\StoreWishlistItemRequest;
 use App\Models\Product;
 use App\Models\WishlistItem;
+use App\Support\MediaUrl;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -49,7 +50,7 @@ final class WishlistController extends Controller
                     'price' => $item->product->price,
                     'compare_at_price' => $item->product->compare_at_price,
                     'currency' => $item->product->currency,
-                    'primary_image_url' => $item->product->getFirstMediaUrl('images', 'thumb') ?: null,
+                    'primary_image_url' => MediaUrl::fromCollection($item->product, 'images', 'thumb'),
                     'in_stock' => $item->product->isInStock(),
                     'vendor' => [
                         'id' => $item->product->vendor->uuid,

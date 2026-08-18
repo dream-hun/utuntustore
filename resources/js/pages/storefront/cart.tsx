@@ -1,5 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { ImageOff, Minus, Plus, Store, X } from 'lucide-react';
+import { Minus, Plus, Store, X } from 'lucide-react';
+import { Image } from '@/components/image';
 import { Money } from '@/components/money';
 import StorefrontLayout from '@/layouts/storefront-layout';
 import { shop } from '@/routes';
@@ -122,17 +123,12 @@ export default function CartPage({
                                         className="flex gap-4 border-b border-border py-6 sm:gap-6"
                                     >
                                         <div className="h-32 w-24 shrink-0 overflow-hidden rounded-2xl bg-cream sm:h-40 sm:w-32">
-                                            {item.product.image_url ? (
-                                                <img
-                                                    src={item.product.image_url}
-                                                    alt={item.product.name}
-                                                    className="size-full object-cover"
-                                                />
-                                            ) : (
-                                                <div className="flex size-full items-center justify-center text-muted-foreground">
-                                                    <ImageOff className="size-5" />
-                                                </div>
-                                            )}
+                                            <Image
+                                                src={item.product.image_url}
+                                                alt={item.product.name}
+                                                iconClassName="size-5"
+                                                className="size-full object-cover"
+                                            />
                                         </div>
 
                                         <div className="flex min-w-0 flex-1 flex-col justify-between gap-4">
