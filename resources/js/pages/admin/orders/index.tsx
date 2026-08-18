@@ -1,6 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
 import { Receipt } from 'lucide-react';
-import { AdminNav } from '@/components/admin/admin-nav';
 import type { AdminOrderRow } from '@/components/admin/types';
 import type { DataTableColumn } from '@/components/data-table';
 import { DataTable } from '@/components/data-table';
@@ -17,7 +16,6 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useTableFilters } from '@/hooks/use-table-filters';
-import AppLayout from '@/layouts/app-layout';
 import { formatDate } from '@/lib/format';
 import type { Paginated } from '@/types/marketplace';
 
@@ -92,12 +90,7 @@ export default function AdminOrders({
     });
 
     return (
-        <AppLayout
-            breadcrumbs={[
-                { title: 'Admin', href: '/admin' },
-                { title: 'Orders', href: '/admin/orders' },
-            ]}
-        >
+        <>
             <Head title="Orders" />
 
             <div className="flex flex-col gap-6 p-4">
@@ -110,8 +103,6 @@ export default function AdminOrders({
                         customers and vendors — never platform revenue.
                     </p>
                 </div>
-
-                <AdminNav />
 
                 <div className="flex flex-wrap gap-3">
                     <form
@@ -227,6 +218,13 @@ export default function AdminOrders({
                     }
                 />
             </div>
-        </AppLayout>
+        </>
     );
 }
+
+AdminOrders.layout = {
+    breadcrumbs: [
+        { title: 'Admin', href: '/admin' },
+        { title: 'Orders', href: '/admin/orders' },
+    ],
+};

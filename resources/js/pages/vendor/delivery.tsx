@@ -26,8 +26,6 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SubscriptionBanner } from '@/components/vendor/subscription-banner';
-import { VendorNav } from '@/components/vendor/vendor-nav';
-import AppLayout from '@/layouts/app-layout';
 import { formatDeliveryEstimate } from '@/lib/format';
 
 interface Ref {
@@ -246,12 +244,7 @@ export default function VendorDelivery({
     ];
 
     return (
-        <AppLayout
-            breadcrumbs={[
-                { title: 'Vendor', href: '/vendor' },
-                { title: 'Delivery areas', href: '/vendor/delivery' },
-            ]}
-        >
+        <>
             <Head title="Delivery areas" />
 
             <div className="flex flex-col gap-6 p-4">
@@ -278,7 +271,6 @@ export default function VendorDelivery({
                 </div>
 
                 <SubscriptionBanner />
-                <VendorNav />
 
                 <Card>
                     <CardContent className="text-sm text-muted-foreground">
@@ -546,6 +538,13 @@ export default function VendorDelivery({
                     });
                 }}
             />
-        </AppLayout>
+        </>
     );
 }
+
+VendorDelivery.layout = {
+    breadcrumbs: [
+        { title: 'Vendor', href: '/vendor' },
+        { title: 'Delivery areas', href: '/vendor/delivery' },
+    ],
+};

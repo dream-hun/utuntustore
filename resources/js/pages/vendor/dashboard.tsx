@@ -5,8 +5,6 @@ import { OrderStatusBadge } from '@/components/status-badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SubscriptionBanner } from '@/components/vendor/subscription-banner';
-import { VendorNav } from '@/components/vendor/vendor-nav';
-import AppLayout from '@/layouts/app-layout';
 import { formatDate } from '@/lib/format';
 import type { OrderStatus } from '@/types/marketplace';
 
@@ -82,7 +80,7 @@ export default function VendorDashboard({
     lowStockProducts?: LowStockProduct[];
 }) {
     return (
-        <AppLayout breadcrumbs={[{ title: 'Vendor', href: '/vendor' }]}>
+        <>
             <Head title="Vendor dashboard" />
 
             <div className="flex flex-col gap-6 p-4">
@@ -97,7 +95,6 @@ export default function VendorDashboard({
                 </div>
 
                 <SubscriptionBanner />
-                <VendorNav />
 
                 <Deferred
                     data="stats"
@@ -289,6 +286,10 @@ export default function VendorDashboard({
                     </Card>
                 </div>
             </div>
-        </AppLayout>
+        </>
     );
 }
+
+VendorDashboard.layout = {
+    breadcrumbs: [{ title: 'Vendor', href: '/vendor' }],
+};

@@ -15,9 +15,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { SubscriptionBanner } from '@/components/vendor/subscription-banner';
-import { VendorNav } from '@/components/vendor/vendor-nav';
 import { useTableFilters } from '@/hooks/use-table-filters';
-import AppLayout from '@/layouts/app-layout';
 import { formatDate } from '@/lib/format';
 import type { OrderStatus, Paginated } from '@/types/marketplace';
 
@@ -93,12 +91,7 @@ export default function VendorOrders({
     });
 
     return (
-        <AppLayout
-            breadcrumbs={[
-                { title: 'Vendor', href: '/vendor' },
-                { title: 'Orders', href: '/vendor/orders' },
-            ]}
-        >
+        <>
             <Head title="Orders" />
 
             <div className="flex flex-col gap-6 p-4">
@@ -112,7 +105,6 @@ export default function VendorOrders({
                 </div>
 
                 <SubscriptionBanner />
-                <VendorNav />
 
                 <div className="flex flex-wrap gap-3">
                     <form
@@ -200,6 +192,13 @@ export default function VendorOrders({
                     }
                 />
             </div>
-        </AppLayout>
+        </>
     );
 }
+
+VendorOrders.layout = {
+    breadcrumbs: [
+        { title: 'Vendor', href: '/vendor' },
+        { title: 'Orders', href: '/vendor/orders' },
+    ],
+};

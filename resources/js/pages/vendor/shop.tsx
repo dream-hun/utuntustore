@@ -8,8 +8,6 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { SubscriptionBanner } from '@/components/vendor/subscription-banner';
-import { VendorNav } from '@/components/vendor/vendor-nav';
-import AppLayout from '@/layouts/app-layout';
 
 interface Shop {
     id: string;
@@ -55,12 +53,7 @@ export default function VendorShopProfile({ shop }: { shop: Shop }) {
     };
 
     return (
-        <AppLayout
-            breadcrumbs={[
-                { title: 'Vendor', href: '/vendor' },
-                { title: 'Shop profile', href: '/vendor/shop' },
-            ]}
-        >
+        <>
             <Head title="Shop profile" />
 
             <div className="flex flex-col gap-6 p-4">
@@ -69,7 +62,6 @@ export default function VendorShopProfile({ shop }: { shop: Shop }) {
                 </h1>
 
                 <SubscriptionBanner />
-                <VendorNav />
 
                 <form onSubmit={submit} className="grid max-w-3xl gap-6">
                     <Card>
@@ -233,6 +225,13 @@ export default function VendorShopProfile({ shop }: { shop: Shop }) {
                     </div>
                 </form>
             </div>
-        </AppLayout>
+        </>
     );
 }
+
+VendorShopProfile.layout = {
+    breadcrumbs: [
+        { title: 'Vendor', href: '/vendor' },
+        { title: 'Shop profile', href: '/vendor/shop' },
+    ],
+};

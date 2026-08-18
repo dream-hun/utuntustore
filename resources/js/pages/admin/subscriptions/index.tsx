@@ -1,7 +1,6 @@
 import { Deferred, Head, Link, router } from '@inertiajs/react';
 import { Banknote, CircleSlash, Plus } from 'lucide-react';
 import { useState } from 'react';
-import { AdminNav } from '@/components/admin/admin-nav';
 import { RecordPaymentModal } from '@/components/admin/record-payment-modal';
 import {
     ListSkeleton,
@@ -32,7 +31,6 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useTableFilters } from '@/hooks/use-table-filters';
-import AppLayout from '@/layouts/app-layout';
 import { formatDate, formatRelativeDays } from '@/lib/format';
 import type { Paginated } from '@/types/marketplace';
 
@@ -162,12 +160,7 @@ export default function AdminSubscriptions({
     ];
 
     return (
-        <AppLayout
-            breadcrumbs={[
-                { title: 'Admin', href: '/admin' },
-                { title: 'Subscriptions', href: '/admin/subscriptions' },
-            ]}
-        >
+        <>
             <Head title="Subscriptions" />
 
             <div className="flex flex-col gap-6 p-4">
@@ -185,8 +178,6 @@ export default function AdminSubscriptions({
                         Record payment
                     </Button>
                 </div>
-
-                <AdminNav />
 
                 <Alert>
                     <Banknote className="size-4" />
@@ -383,6 +374,13 @@ export default function AdminSubscriptions({
                     );
                 }}
             />
-        </AppLayout>
+        </>
     );
 }
+
+AdminSubscriptions.layout = {
+    breadcrumbs: [
+        { title: 'Admin', href: '/admin' },
+        { title: 'Subscriptions', href: '/admin/subscriptions' },
+    ],
+};

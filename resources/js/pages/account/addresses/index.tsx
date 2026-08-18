@@ -1,7 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import { MapPin, Pencil, Plus, Star, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import { AccountNav } from '@/components/account/account-nav';
 import { AddressFormModal } from '@/components/account/address-form-modal';
 import type { AccountAddress } from '@/components/account/address-form-modal';
 import { ConfirmDialog } from '@/components/confirm-dialog';
@@ -12,7 +11,6 @@ import type { RowAction } from '@/components/row-actions';
 import { RowActions } from '@/components/row-actions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import AppLayout from '@/layouts/app-layout';
 import account from '@/routes/account';
 import addresses from '@/routes/account/addresses';
 import type { District, Paginated, Sector } from '@/types/marketplace';
@@ -167,12 +165,7 @@ export default function AccountAddresses({
     ];
 
     return (
-        <AppLayout
-            breadcrumbs={[
-                { title: 'Account', href: account.index.url() },
-                { title: 'Addresses', href: addresses.index.url() },
-            ]}
-        >
+        <>
             <Head title="Delivery addresses" />
 
             <div className="flex flex-col gap-6 p-4">
@@ -193,8 +186,6 @@ export default function AccountAddresses({
                         Add address
                     </Button>
                 </div>
-
-                <AccountNav />
 
                 <DataTable
                     caption="Delivery addresses"
@@ -240,6 +231,13 @@ export default function AccountAddresses({
                 onConfirm={confirmDelete}
                 processing={processing}
             />
-        </AppLayout>
+        </>
     );
 }
+
+AccountAddresses.layout = {
+    breadcrumbs: [
+        { title: 'Account', href: account.index.url() },
+        { title: 'Addresses', href: addresses.index.url() },
+    ],
+};

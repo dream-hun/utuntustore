@@ -1,7 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import { FolderTree, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import { AdminNav } from '@/components/admin/admin-nav';
 import { CategoryFormModal } from '@/components/admin/category-form-modal';
 import type {
     AdminCategoryRow,
@@ -16,7 +15,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTableFilters } from '@/hooks/use-table-filters';
-import AppLayout from '@/layouts/app-layout';
 import type { Paginated } from '@/types/marketplace';
 
 export default function AdminCategories({
@@ -116,12 +114,7 @@ export default function AdminCategories({
     ];
 
     return (
-        <AppLayout
-            breadcrumbs={[
-                { title: 'Admin', href: '/admin' },
-                { title: 'Categories', href: '/admin/categories' },
-            ]}
-        >
+        <>
             <Head title="Categories" />
 
             <div className="flex flex-col gap-6 p-4">
@@ -134,8 +127,6 @@ export default function AdminCategories({
                         New category
                     </Button>
                 </div>
-
-                <AdminNav />
 
                 <form
                     onSubmit={(event) => {
@@ -230,6 +221,13 @@ export default function AdminCategories({
                     });
                 }}
             />
-        </AppLayout>
+        </>
     );
 }
+
+AdminCategories.layout = {
+    breadcrumbs: [
+        { title: 'Admin', href: '/admin' },
+        { title: 'Categories', href: '/admin/categories' },
+    ],
+};

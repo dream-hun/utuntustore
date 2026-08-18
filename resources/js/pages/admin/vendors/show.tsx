@@ -1,5 +1,4 @@
 import { Head, Link } from '@inertiajs/react';
-import { AdminNav } from '@/components/admin/admin-nav';
 import type {
     AdminSubscriptionRow,
     AdminVendorDetail,
@@ -14,7 +13,6 @@ import {
 } from '@/components/status-badge';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import AppLayout from '@/layouts/app-layout';
 import { formatDate } from '@/lib/format';
 import type { OrderStatus } from '@/types/marketplace';
 
@@ -120,16 +118,7 @@ export default function AdminVendorShow({
     recentOrders: RecentOrder[];
 }) {
     return (
-        <AppLayout
-            breadcrumbs={[
-                { title: 'Admin', href: '/admin' },
-                { title: 'Vendors', href: '/admin/vendors' },
-                {
-                    title: vendor.shop_name,
-                    href: `/admin/vendors/${vendor.id}`,
-                },
-            ]}
-        >
+        <>
             <Head title={vendor.shop_name} />
 
             <div className="flex flex-col gap-6 p-4">
@@ -153,8 +142,6 @@ export default function AdminVendorShow({
                         ) : null}
                     </div>
                 </div>
-
-                <AdminNav />
 
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <Card>
@@ -269,6 +256,17 @@ export default function AdminVendorShow({
                     </CardContent>
                 </Card>
             </div>
-        </AppLayout>
+        </>
     );
 }
+
+AdminVendorShow.layout = ({ vendor }: { vendor: AdminVendorDetail }) => ({
+    breadcrumbs: [
+        { title: 'Admin', href: '/admin' },
+        { title: 'Vendors', href: '/admin/vendors' },
+        {
+            title: vendor.shop_name,
+            href: `/admin/vendors/${vendor.id}`,
+        },
+    ],
+});

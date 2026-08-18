@@ -1,7 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import { Ban, RotateCcw, Users } from 'lucide-react';
 import { useState } from 'react';
-import { AdminNav } from '@/components/admin/admin-nav';
 import type { AdminCustomerRow } from '@/components/admin/types';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import type { DataTableColumn } from '@/components/data-table';
@@ -20,7 +19,6 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useTableFilters } from '@/hooks/use-table-filters';
-import AppLayout from '@/layouts/app-layout';
 import { formatDate } from '@/lib/format';
 import type { Paginated } from '@/types/marketplace';
 
@@ -126,20 +124,13 @@ export default function AdminCustomers({
     ];
 
     return (
-        <AppLayout
-            breadcrumbs={[
-                { title: 'Admin', href: '/admin' },
-                { title: 'Customers', href: '/admin/customers' },
-            ]}
-        >
+        <>
             <Head title="Customers" />
 
             <div className="flex flex-col gap-6 p-4">
                 <h1 className="text-2xl font-semibold tracking-tight">
                     Customers
                 </h1>
-
-                <AdminNav />
 
                 <div className="flex flex-wrap gap-3">
                     <form
@@ -247,6 +238,13 @@ export default function AdminCustomers({
                     );
                 }}
             />
-        </AppLayout>
+        </>
     );
 }
+
+AdminCustomers.layout = {
+    breadcrumbs: [
+        { title: 'Admin', href: '/admin' },
+        { title: 'Customers', href: '/admin/customers' },
+    ],
+};

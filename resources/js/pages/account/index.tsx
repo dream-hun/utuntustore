@@ -1,13 +1,11 @@
 import { Deferred, Head, Link } from '@inertiajs/react';
 import { Heart, MapPin, Package, Star } from 'lucide-react';
-import { AccountNav } from '@/components/account/account-nav';
 import { EmptyState } from '@/components/empty-state';
 import { Money } from '@/components/money';
 import { OrderStatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import AppLayout from '@/layouts/app-layout';
 import { formatDate } from '@/lib/format';
 import account from '@/routes/account';
 import type { OrderStatus } from '@/types/marketplace';
@@ -53,9 +51,7 @@ export default function AccountOverview({
     awaitingReview?: AwaitingReview;
 }) {
     return (
-        <AppLayout
-            breadcrumbs={[{ title: 'Account', href: account.index.url() }]}
-        >
+        <>
             <Head title="My account" />
 
             <div className="flex flex-col gap-6 p-4">
@@ -67,8 +63,6 @@ export default function AccountOverview({
                         Your orders, delivery addresses and saved products.
                     </p>
                 </div>
-
-                <AccountNav />
 
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     <Card>
@@ -267,6 +261,10 @@ export default function AccountOverview({
                     </CardContent>
                 </Card>
             </div>
-        </AppLayout>
+        </>
     );
 }
+
+AccountOverview.layout = {
+    breadcrumbs: [{ title: 'Account', href: account.index.url() }],
+};
