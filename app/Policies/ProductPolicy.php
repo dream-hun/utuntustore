@@ -13,6 +13,9 @@ use App\Models\User;
  * Ownership and selling eligibility are separate concerns: this policy answers
  * "is it yours", and the vendor.can-sell middleware answers "may you publish it".
  * An expired vendor can still edit and unpublish their own catalog.
+ *
+ * An admin sees the whole catalog and may add to it on a shop's behalf, but changing
+ * or removing a product stays with the vendor who has to supply the goods.
  */
 final class ProductPolicy
 {
@@ -36,7 +39,11 @@ final class ProductPolicy
 
     public function create(User $user): bool
     {
-        return $user->isVendor();
+        if ($user->isVendor()) {
+            return true;
+        }
+
+        return $user->isAdmin();
     }
 
     public function update(User $user, Product $product): bool

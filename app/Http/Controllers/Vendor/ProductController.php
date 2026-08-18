@@ -8,19 +8,17 @@ use App\Actions\Vendor\CreateProduct;
 use App\Actions\Vendor\DeleteProduct;
 use App\Actions\Vendor\UpdateProduct;
 use App\Enums\ProductStatus;
+use App\Http\Controllers\Concerns\PresentsProducts;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Vendor\ProductRequest;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\Vendor;
-use App\Support\Cast;
-use App\Support\MediaUrl;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
-use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * A vendor's own catalog.
@@ -34,6 +32,8 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  */
 final class ProductController extends Controller
 {
+    use PresentsProducts;
+
     public function index(Request $request, Vendor $vendor): Response
     {
         $this->authorize('viewAny', Product::class);
@@ -118,41 +118,5 @@ final class ProductController extends Controller
         ]);
 
         return back();
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function productRow(Product $product): array
-    {
-        return [
-            'id' => $product->uuid,
-            'name' => $product->name,
-            'slug' => $product->slug,
-            'sku' => $product->sku,
-            'description' => $product->description,
-            'short_description' => $product->short_description,
-            'price' => $product->price,
-            'compare_at_price' => $product->compare_at_price,
-            'currency' => $product->currency,
-            'stock_quantity' => $product->stock_quantity,
-            'low_stock_threshold' => $product->low_stock_threshold,
-            'weight' => $product->weight,
-            'status' => $product->status->value,
-            'published_at' => $product->published_at,
-            'is_low_stock' => $product->isLowStock(),
-            'variants_count' => Cast::int($product->getAttribute('variants_count')),
-            'category' => [
-                'id' => $product->category->uuid,
-                'name' => $product->category->name,
-            ],
-            'images' => $product->getMedia('images')
-                ->map(fn (Media $media): array => [
-                    'id' => $media->uuid,
-                    'url' => MediaUrl::for($media),
-                    'thumb_url' => MediaUrl::for($media, 'thumb'),
-                ])
-                ->all(),
-        ];
     }
 }

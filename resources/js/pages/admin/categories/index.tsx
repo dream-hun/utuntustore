@@ -192,17 +192,21 @@ export default function AdminCategories({
                 />
             </div>
 
-            <CategoryFormModal
-                open={creating || editing !== null}
-                onOpenChange={(open) => {
-                    if (!open) {
-                        setCreating(false);
-                        setEditing(null);
-                    }
-                }}
-                category={editing}
-                parents={parents}
-            />
+            {creating || editing !== null ? (
+                <CategoryFormModal
+                    // Remounted per row so the form is seeded from the row being edited.
+                    key={editing?.id ?? 'new'}
+                    open
+                    onOpenChange={(open) => {
+                        if (!open) {
+                            setCreating(false);
+                            setEditing(null);
+                        }
+                    }}
+                    category={editing}
+                    parents={parents}
+                />
+            ) : null}
 
             <ConfirmDialog
                 open={deleting !== null}

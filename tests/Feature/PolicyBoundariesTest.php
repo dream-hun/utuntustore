@@ -44,8 +44,11 @@ it('lets a vendor and an admin into the catalog, and nobody else', function (): 
     expect($this->vendorUser->can('viewAny', Product::class))->toBeTrue()
         ->and($this->admin->can('viewAny', Product::class))->toBeTrue()
         ->and($this->customer->can('viewAny', Product::class))->toBeFalse()
+        // A vendor stocks their own shop; an admin adds to a shop on its behalf, which
+        // is why creating is the one write an admin shares with them.
         ->and($this->vendorUser->can('create', Product::class))->toBeTrue()
-        ->and($this->admin->can('create', Product::class))->toBeFalse();
+        ->and($this->admin->can('create', Product::class))->toBeTrue()
+        ->and($this->customer->can('create', Product::class))->toBeFalse();
 });
 
 it('shows a product to its owner and to an admin only', function (): void {

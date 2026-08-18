@@ -1,5 +1,4 @@
 import { useForm } from '@inertiajs/react';
-import { useEffect } from 'react';
 import { FormModal } from '@/components/form-modal';
 import InputError from '@/components/input-error';
 import { Input } from '@/components/ui/input';
@@ -31,6 +30,13 @@ interface CategoryForm {
 /**
  * Create and edit share one modal because they submit the same fields.
  *
+ * The fields are seeded straight from `category`, and the page mounts this component
+ * keyed by the row being edited, so every open starts from a fresh form. Re-seeding an
+ * already-mounted form with `setDefaults()` followed by `reset()` does not work:
+ * `setDefaults` schedules a state update while `reset` reads the defaults captured by
+ * the current render, so the reset always applies the *previous* row's values — the
+ * first edit opened a blank form and every later one showed the row edited before it.
+ *
  * The slug is not editable: it is generated from the name on creation and then left
  * alone, because it is a public storefront URL that links and bookmarks already point
  * at.
@@ -48,30 +54,12 @@ export function CategoryFormModal({
     parents: CategoryParentOption[];
 }) {
     const form = useForm<CategoryForm>({
-        name: '',
-        parent: NO_PARENT,
-        description: '',
-        is_active: true,
-        sort_order: 0,
+        name: category?.name ?? '',
+        parent: category?.parent?.id ?? NO_PARENT,
+        description: category?.description ?? '',
+        is_active: category?.is_active ?? true,
+        sort_order: category?.sort_order ?? 0,
     });
-
-    useEffect(() => {
-        if (!open) {
-            return;
-        }
-
-        form.setDefaults({
-            name: category?.name ?? '',
-            parent: category?.parent?.id ?? NO_PARENT,
-            description: category?.description ?? '',
-            is_active: category?.is_active ?? true,
-            sort_order: category?.sort_order ?? 0,
-        });
-        form.reset();
-        form.clearErrors();
-        // Re-seeding is driven by which row the modal was opened for.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, category?.id]);
 
     const submit = (event: React.FormEvent) => {
         event.preventDefault();

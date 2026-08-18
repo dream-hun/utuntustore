@@ -8,6 +8,7 @@
 
 import type {
     OrderStatus,
+    ProductStatus,
     SubscriptionPaymentMethod,
     SubscriptionStatus,
     VendorStatus,
@@ -124,6 +125,39 @@ export interface AdminCategoryRow {
 export interface CategoryParentOption {
     id: string;
     name: string;
+}
+
+/** A catalog product as the platform-wide list shows it: the vendor's row plus its shop. */
+export interface AdminProductRow {
+    id: string;
+    name: string;
+    slug: string;
+    sku: string | null;
+    description: string | null;
+    short_description: string | null;
+    price: number;
+    compare_at_price: number | null;
+    currency: string;
+    stock_quantity: number;
+    low_stock_threshold: number;
+    weight: number | null;
+    status: ProductStatus;
+    published_at: string | null;
+    is_low_stock: boolean;
+    variants_count: number;
+    category: { id: string; name: string };
+    images: { id: string; url: string; thumb_url: string }[];
+    vendor: { id: string; shop_name: string };
+}
+
+/**
+ * A shop a product can be added to. Only approved shops are listed; `can_sell` says
+ * whether it may also be published straight away.
+ */
+export interface AdminVendorOption {
+    id: string;
+    shop_name: string;
+    can_sell: boolean;
 }
 
 export interface AdminOrderRow {
