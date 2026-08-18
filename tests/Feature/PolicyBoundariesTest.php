@@ -44,8 +44,11 @@ it('lets a vendor and an admin into the catalog, and nobody else', function (): 
     expect($this->vendorUser->can('viewAny', Product::class))->toBeTrue()
         ->and($this->admin->can('viewAny', Product::class))->toBeTrue()
         ->and($this->customer->can('viewAny', Product::class))->toBeFalse()
+        // A vendor stocks their own shop; an admin adds to a shop on its behalf, which
+        // is why creating is the one write an admin shares with them.
         ->and($this->vendorUser->can('create', Product::class))->toBeTrue()
-        ->and($this->admin->can('create', Product::class))->toBeFalse();
+        ->and($this->admin->can('create', Product::class))->toBeTrue()
+        ->and($this->customer->can('create', Product::class))->toBeFalse();
 });
 
 it('shows a product to its owner and to an admin only', function (): void {
@@ -58,8 +61,24 @@ it('shows a product to its owner and to an admin only', function (): void {
 });
 
 /**
- * Ownership and selling eligibility are separate: an admin can look, but publishing
- * stays with the shop that has a live subscription.
+ * An admin curates the catalog: they may edit and remove any shop's product, which is
+ * how a platform operator fixes a listing without waiting on the vendor. A rival vendor
+ * still may not touch it.
+ */
+it('lets an admin curate any shop product but never a rival vendor', function (): void {
+    $product = Product::factory()->for($this->vendor)->create();
+
+    expect($this->admin->can('update', $product))->toBeTrue()
+        ->and($this->admin->can('delete', $product))->toBeTrue()
+        ->and($this->rivalUser->can('update', $product))->toBeFalse()
+        ->and($this->rivalUser->can('delete', $product))->toBeFalse()
+        ->and($this->customer->can('update', $product))->toBeFalse()
+        ->and($this->customer->can('delete', $product))->toBeFalse();
+});
+
+/**
+ * Ownership and selling eligibility are separate: an admin can look and curate, but
+ * publishing stays with the shop that has a live subscription.
  */
 it('separates owning a product from being allowed to publish it', function (): void {
     $product = Product::factory()->for($this->vendor)->create();

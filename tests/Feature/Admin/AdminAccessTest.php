@@ -9,6 +9,7 @@ use App\Enums\VendorStatus;
 use App\Enums\VendorSubscriptionStatus;
 use App\Models\Category;
 use App\Models\Order;
+use App\Models\Product;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorSubscription;
@@ -29,6 +30,7 @@ function adminGetRoutes(): array
         route('admin.vendors.index'),
         route('admin.subscriptions.index'),
         route('admin.categories.index'),
+        route('admin.products.index'),
         route('admin.customers.index'),
         route('admin.orders.index'),
         route('admin.settings.edit'),
@@ -143,6 +145,55 @@ it('stops a vendor deleting a category out from under the catalog', function ():
         ->assertForbidden();
 
     expect(Category::query()->whereKey($category->id)->exists())->toBeTrue();
+});
+
+/**
+ * Adding a product through the admin route chooses the shop it lands in, so a vendor
+ * reaching it could stock a rival's catalog — or their own past a lapsed subscription.
+ */
+it('stops a vendor adding a product through the admin area', function (): void {
+    $vendor = Vendor::factory()->sellable()->create();
+    $vendor->user->update(['role' => UserRole::Vendor]);
+
+    $rival = Vendor::factory()->sellable()->create();
+    $category = Category::factory()->create();
+
+    $this->actingAs($vendor->user)
+        ->post(route('admin.products.store'), [
+            'vendor' => $rival->uuid,
+            'name' => 'Planted Product',
+            'category_id' => $category->uuid,
+            'price' => 1000,
+            'stock_quantity' => 1,
+            'low_stock_threshold' => 1,
+        ])
+        ->assertForbidden();
+
+    expect(Product::query()->count())->toBe(0);
+});
+
+it('stops a vendor editing or deleting a rival product through the admin area', function (): void {
+    $vendor = Vendor::factory()->sellable()->create();
+    $vendor->user->update(['role' => UserRole::Vendor]);
+
+    $rival = Vendor::factory()->sellable()->create();
+    $product = Product::factory()->for($rival)->create(['name' => 'Rival Product']);
+
+    $this->actingAs($vendor->user)
+        ->post(route('admin.products.update', $product), [
+            'name' => 'Sabotaged',
+            'category_id' => $product->category->uuid,
+            'price' => 1,
+            'stock_quantity' => 0,
+            'low_stock_threshold' => 1,
+        ])
+        ->assertForbidden();
+
+    $this->actingAs($vendor->user)
+        ->delete(route('admin.products.destroy', $product))
+        ->assertForbidden();
+
+    expect($product->fresh()->name)->toBe('Rival Product');
 });
 
 it('stops a vendor reading another shop private detail page', function (): void {

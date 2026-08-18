@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\OrderController;
+use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\SubscriptionController;
 use App\Http\Controllers\Admin\VendorController;
@@ -45,6 +46,17 @@ Route::middleware(['auth', 'verified', 'role:admin'])
         Route::post('categories', [CategoryController::class, 'store'])->name('categories.store');
         Route::put('categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
         Route::delete('categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
+
+        /*
+         | The platform-wide catalog. An admin curates any shop's products; publishing an
+         | existing one stays with the vendor, whose subscription decides it.
+         |
+         | Update is POST, not PUT: the body is multipart because it can carry images.
+         */
+        Route::get('products', [ProductController::class, 'index'])->name('products.index');
+        Route::post('products', [ProductController::class, 'store'])->name('products.store');
+        Route::post('products/{product}', [ProductController::class, 'update'])->name('products.update');
+        Route::delete('products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
 
         // Oversight only. Advancing a vendor order stays with the vendor who delivers it.
         Route::get('orders', [OrderController::class, 'index'])->name('orders.index');

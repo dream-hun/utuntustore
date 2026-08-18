@@ -59,6 +59,7 @@ const administration: NavSection = {
             href: admin.categories.index.url(),
             icon: FolderTree,
         },
+        { title: 'Products', href: admin.products.index.url(), icon: Package },
         { title: 'Orders', href: admin.orders.index.url(), icon: ShoppingBag },
         { title: 'Customers', href: admin.customers.index.url(), icon: Users },
         {

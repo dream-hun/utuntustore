@@ -2,21 +2,23 @@
 
 declare(strict_types=1);
 
-namespace App\Http\Requests\Vendor;
+namespace App\Http\Requests\Admin;
 
 use App\Concerns\ProductValidationRules;
-use App\Models\Vendor;
+use App\Models\Product;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\UploadedFile;
 
 /**
- * Validation shared by product create and edit.
+ * An admin editing a product in a shop's catalog.
  *
- * The shop is never submitted here: it is the vendor the `vendor` middleware already
- * resolved from the signed-in user, so no payload can aim a product at another shop.
+ * The shop is deliberately absent, unlike on the create form: moving a product between
+ * catalogs would strand it away from the delivery coverage it was bought under and from
+ * the vendor orders that already reference it. The owning shop comes from the routed
+ * product, which is also what scopes the SKU uniqueness check.
  */
-final class ProductRequest extends FormRequest
+final class ProductUpdateRequest extends FormRequest
 {
     use ProductValidationRules;
 
@@ -25,7 +27,7 @@ final class ProductRequest extends FormRequest
      */
     public function rules(): array
     {
-        return $this->productRules(resolve(Vendor::class));
+        return $this->productRules($this->product()->vendor);
     }
 
     /**
@@ -50,5 +52,17 @@ final class ProductRequest extends FormRequest
     public function images(): array
     {
         return $this->productImages();
+    }
+
+    /**
+     * The product being edited, as route model binding resolved it.
+     */
+    private function product(): Product
+    {
+        $product = $this->route('product');
+
+        abort_unless($product instanceof Product, 404);
+
+        return $product;
     }
 }
