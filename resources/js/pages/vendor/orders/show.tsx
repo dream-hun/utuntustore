@@ -7,8 +7,6 @@ import { OrderStatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { VendorNav } from '@/components/vendor/vendor-nav';
-import AppLayout from '@/layouts/app-layout';
 import { formatDate, formatDateTime } from '@/lib/format';
 import type { OrderStatus } from '@/types/marketplace';
 
@@ -68,16 +66,7 @@ export default function VendorOrderShow({
     const address = vendorOrder.delivery_address;
 
     return (
-        <AppLayout
-            breadcrumbs={[
-                { title: 'Vendor', href: '/vendor' },
-                { title: 'Orders', href: '/vendor/orders' },
-                {
-                    title: vendorOrder.order_number,
-                    href: `/vendor/orders/${vendorOrder.id}`,
-                },
-            ]}
-        >
+        <>
             <Head title={vendorOrder.order_number} />
 
             <div className="flex flex-col gap-6 p-4">
@@ -94,8 +83,6 @@ export default function VendorOrderShow({
                     </div>
                     <OrderStatusBadge status={vendorOrder.status} />
                 </div>
-
-                <VendorNav />
 
                 {vendorOrder.allowed_transitions.length > 0 ? (
                     <Card>
@@ -272,6 +259,21 @@ export default function VendorOrderShow({
                 destructive={confirming?.value === 'cancelled'}
                 onConfirm={() => confirming && transition(confirming.value)}
             />
-        </AppLayout>
+        </>
     );
 }
+
+VendorOrderShow.layout = ({
+    vendorOrder,
+}: {
+    vendorOrder: VendorOrderDetail;
+}) => ({
+    breadcrumbs: [
+        { title: 'Vendor', href: '/vendor' },
+        { title: 'Orders', href: '/vendor/orders' },
+        {
+            title: vendorOrder.order_number,
+            href: `/vendor/orders/${vendorOrder.id}`,
+        },
+    ],
+});

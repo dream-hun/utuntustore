@@ -7,8 +7,6 @@ import { SubscriptionStatusBadge } from '@/components/status-badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { VendorNav } from '@/components/vendor/vendor-nav';
-import AppLayout from '@/layouts/app-layout';
 import { formatDate, formatRelativeDays } from '@/lib/format';
 import type {
     SubscriptionPaymentMethod,
@@ -88,20 +86,13 @@ export default function VendorSubscriptionPage({
     payments?: Payment[];
 }) {
     return (
-        <AppLayout
-            breadcrumbs={[
-                { title: 'Vendor', href: '/vendor' },
-                { title: 'Subscription', href: '/vendor/subscription' },
-            ]}
-        >
+        <>
             <Head title="Subscription" />
 
             <div className="flex flex-col gap-6 p-4">
                 <h1 className="text-2xl font-semibold tracking-tight">
                     Subscription
                 </h1>
-
-                <VendorNav />
 
                 <div className="grid gap-4 lg:grid-cols-3">
                     <Card className="lg:col-span-2">
@@ -240,6 +231,13 @@ export default function VendorSubscriptionPage({
                     </CardContent>
                 </Card>
             </div>
-        </AppLayout>
+        </>
     );
 }
+
+VendorSubscriptionPage.layout = {
+    breadcrumbs: [
+        { title: 'Vendor', href: '/vendor' },
+        { title: 'Subscription', href: '/vendor/subscription' },
+    ],
+};

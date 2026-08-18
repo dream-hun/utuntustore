@@ -1,6 +1,5 @@
 import { Deferred, Head, Link } from '@inertiajs/react';
 import { Banknote, Store, TriangleAlert, Users } from 'lucide-react';
-import { AdminNav } from '@/components/admin/admin-nav';
 import {
     ListSkeleton,
     StatCard,
@@ -19,7 +18,6 @@ import {
 } from '@/components/status-badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import AppLayout from '@/layouts/app-layout';
 import { formatDate, formatRelativeDays } from '@/lib/format';
 
 export default function AdminDashboard({
@@ -38,7 +36,7 @@ export default function AdminDashboard({
     recentSignups?: RecentSignups;
 }) {
     return (
-        <AppLayout breadcrumbs={[{ title: 'Admin', href: '/admin' }]}>
+        <>
             <Head title="Admin dashboard" />
 
             <div className="flex flex-col gap-6 p-4">
@@ -51,8 +49,6 @@ export default function AdminDashboard({
                         belongs to the vendors.
                     </p>
                 </div>
-
-                <AdminNav />
 
                 <Deferred
                     data="revenue"
@@ -86,7 +82,7 @@ export default function AdminDashboard({
                                     currency={revenue?.this_year.currency}
                                 />
                             }
-                            hint={`${revenue?.this_year.count ?? 0} subscriptions`}
+                            hint={`${revenue?.this_year.count ?? 0} subscription${revenue?.this_year.count === 1 ? '' : 's'}`}
                         />
                         <StatCard
                             icon={Banknote}
@@ -97,7 +93,7 @@ export default function AdminDashboard({
                                     currency={revenue?.all_time.currency}
                                 />
                             }
-                            hint={`${revenue?.all_time.count ?? 0} subscriptions`}
+                            hint={`${revenue?.all_time.count ?? 0} subscription${revenue?.all_time.count === 1 ? '' : 's'}`}
                         />
                     </div>
                 </Deferred>
@@ -292,6 +288,10 @@ export default function AdminDashboard({
                     </Card>
                 </div>
             </div>
-        </AppLayout>
+        </>
     );
 }
+
+AdminDashboard.layout = {
+    breadcrumbs: [{ title: 'Admin', href: '/admin' }],
+};

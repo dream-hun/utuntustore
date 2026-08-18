@@ -1,13 +1,11 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { Heart, ShoppingCart, Trash2 } from 'lucide-react';
-import { AccountNav } from '@/components/account/account-nav';
 import { EmptyState } from '@/components/empty-state';
 import { Image } from '@/components/image';
 import { Money } from '@/components/money';
 import { PaginationNav } from '@/components/pagination-nav';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import AppLayout from '@/layouts/app-layout';
 import { shop } from '@/routes';
 import { show as productShow } from '@/routes/products';
 import type { Paginated } from '@/types/marketplace';
@@ -39,20 +37,13 @@ export default function AccountWishlist({
     items: Paginated<WishlistRow>;
 }) {
     return (
-        <AppLayout
-            breadcrumbs={[
-                { title: 'Account', href: '/account' },
-                { title: 'Wishlist', href: '/account/wishlist' },
-            ]}
-        >
+        <>
             <Head title="Wishlist" />
 
             <div className="flex flex-col gap-6 p-4">
                 <h1 className="text-2xl font-semibold tracking-tight">
                     Wishlist
                 </h1>
-
-                <AccountNav />
 
                 {items.data.length === 0 ? (
                     <EmptyState
@@ -173,6 +164,13 @@ export default function AccountWishlist({
                     </div>
                 )}
             </div>
-        </AppLayout>
+        </>
     );
 }
+
+AccountWishlist.layout = {
+    breadcrumbs: [
+        { title: 'Account', href: '/account' },
+        { title: 'Wishlist', href: '/account/wishlist' },
+    ],
+};

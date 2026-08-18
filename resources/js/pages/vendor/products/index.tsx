@@ -24,9 +24,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { SubscriptionBanner } from '@/components/vendor/subscription-banner';
-import { VendorNav } from '@/components/vendor/vendor-nav';
 import { useTableFilters } from '@/hooks/use-table-filters';
-import AppLayout from '@/layouts/app-layout';
 import type { Paginated, ProductStatus } from '@/types/marketplace';
 
 interface ProductRow {
@@ -441,12 +439,7 @@ export default function VendorProducts({
     );
 
     return (
-        <AppLayout
-            breadcrumbs={[
-                { title: 'Vendor', href: '/vendor' },
-                { title: 'Products', href: '/vendor/products' },
-            ]}
-        >
+        <>
             <Head title="Products" />
 
             <div className="flex flex-col gap-6 p-4">
@@ -461,7 +454,6 @@ export default function VendorProducts({
                 </div>
 
                 <SubscriptionBanner />
-                <VendorNav />
 
                 <div className="flex flex-wrap gap-3">
                     <form
@@ -586,6 +578,13 @@ export default function VendorProducts({
                     });
                 }}
             />
-        </AppLayout>
+        </>
     );
 }
+
+VendorProducts.layout = {
+    breadcrumbs: [
+        { title: 'Vendor', href: '/vendor' },
+        { title: 'Products', href: '/vendor/products' },
+    ],
+};

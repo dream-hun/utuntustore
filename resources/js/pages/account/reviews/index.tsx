@@ -1,7 +1,6 @@
 import { Head } from '@inertiajs/react';
 import { Star } from 'lucide-react';
 import { useState } from 'react';
-import { AccountNav } from '@/components/account/account-nav';
 import { RatingStars } from '@/components/account/rating-stars';
 import { ReviewFormModal } from '@/components/account/review-form-modal';
 import type { ReviewTarget } from '@/components/account/review-form-modal';
@@ -10,7 +9,6 @@ import { PaginationNav } from '@/components/pagination-nav';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import AppLayout from '@/layouts/app-layout';
 import { formatDate } from '@/lib/format';
 import type { Paginated, ReviewStatus } from '@/types/marketplace';
 
@@ -43,20 +41,13 @@ export default function AccountReviews({
     const [target, setTarget] = useState<ReviewTarget | null>(null);
 
     return (
-        <AppLayout
-            breadcrumbs={[
-                { title: 'Account', href: '/account' },
-                { title: 'Reviews', href: '/account/reviews' },
-            ]}
-        >
+        <>
             <Head title="My reviews" />
 
             <div className="flex flex-col gap-6 p-4">
                 <h1 className="text-2xl font-semibold tracking-tight">
                     My reviews
                 </h1>
-
-                <AccountNav />
 
                 <Card>
                     <CardHeader>
@@ -199,6 +190,13 @@ export default function AccountReviews({
                     target={target}
                 />
             ) : null}
-        </AppLayout>
+        </>
     );
 }
+
+AccountReviews.layout = {
+    breadcrumbs: [
+        { title: 'Account', href: '/account' },
+        { title: 'Reviews', href: '/account/reviews' },
+    ],
+};

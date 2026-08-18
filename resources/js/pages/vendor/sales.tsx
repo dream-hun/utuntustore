@@ -14,8 +14,6 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SubscriptionBanner } from '@/components/vendor/subscription-banner';
-import { VendorNav } from '@/components/vendor/vendor-nav';
-import AppLayout from '@/layouts/app-layout';
 
 interface MonthRow {
     month: string;
@@ -102,12 +100,7 @@ export default function VendorSales({
     };
 
     return (
-        <AppLayout
-            breadcrumbs={[
-                { title: 'Vendor', href: '/vendor' },
-                { title: 'Sales', href: '/vendor/sales' },
-            ]}
-        >
+        <>
             <Head title="Sales" />
 
             <div className="flex flex-col gap-6 p-4">
@@ -137,7 +130,6 @@ export default function VendorSales({
                 </div>
 
                 <SubscriptionBanner />
-                <VendorNav />
 
                 <Alert>
                     <Info className="size-4" />
@@ -270,6 +262,13 @@ export default function VendorSales({
                     </>
                 </Deferred>
             </div>
-        </AppLayout>
+        </>
     );
 }
+
+VendorSales.layout = {
+    breadcrumbs: [
+        { title: 'Vendor', href: '/vendor' },
+        { title: 'Sales', href: '/vendor/sales' },
+    ],
+};

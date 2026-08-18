@@ -1,6 +1,5 @@
 import { Head, useForm } from '@inertiajs/react';
 import { Info } from 'lucide-react';
-import { AdminNav } from '@/components/admin/admin-nav';
 import InputError from '@/components/input-error';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -8,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import AppLayout from '@/layouts/app-layout';
 
 export default function AdminSettings({
     settings,
@@ -30,12 +28,7 @@ export default function AdminSettings({
     };
 
     return (
-        <AppLayout
-            breadcrumbs={[
-                { title: 'Admin', href: '/admin' },
-                { title: 'Settings', href: '/admin/settings' },
-            ]}
-        >
+        <>
             <Head title="Platform settings" />
 
             <div className="flex flex-col gap-6 p-4">
@@ -47,8 +40,6 @@ export default function AdminSettings({
                         Change the subscription terms without a deployment.
                     </p>
                 </div>
-
-                <AdminNav />
 
                 <form onSubmit={submit} className="max-w-2xl">
                     <Card>
@@ -192,6 +183,13 @@ export default function AdminSettings({
                     </Card>
                 </form>
             </div>
-        </AppLayout>
+        </>
     );
 }
+
+AdminSettings.layout = {
+    breadcrumbs: [
+        { title: 'Admin', href: '/admin' },
+        { title: 'Settings', href: '/admin/settings' },
+    ],
+};

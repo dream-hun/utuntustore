@@ -3,7 +3,6 @@ import { Money } from '@/components/money';
 import { OrderStatusBadge } from '@/components/status-badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import AppLayout from '@/layouts/app-layout';
 import { formatDate, formatDateTime } from '@/lib/format';
 import type { OrderStatus } from '@/types/marketplace';
 
@@ -40,15 +39,7 @@ interface OrderDetail {
 
 export default function AccountOrderShow({ order }: { order: OrderDetail }) {
     return (
-        <AppLayout
-            breadcrumbs={[
-                { title: 'Orders', href: '/account/orders' },
-                {
-                    title: order.order_number,
-                    href: `/account/orders/${order.id}`,
-                },
-            ]}
-        >
+        <>
             <Head title={order.order_number} />
 
             <div className="flex flex-col gap-6 p-4">
@@ -170,6 +161,16 @@ export default function AccountOrderShow({ order }: { order: OrderDetail }) {
                     </CardContent>
                 </Card>
             </div>
-        </AppLayout>
+        </>
     );
 }
+
+AccountOrderShow.layout = ({ order }: { order: OrderDetail }) => ({
+    breadcrumbs: [
+        { title: 'Orders', href: '/account/orders' },
+        {
+            title: order.order_number,
+            href: `/account/orders/${order.id}`,
+        },
+    ],
+});

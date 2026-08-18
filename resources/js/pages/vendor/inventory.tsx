@@ -10,9 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { SubscriptionBanner } from '@/components/vendor/subscription-banner';
-import { VendorNav } from '@/components/vendor/vendor-nav';
 import { useTableFilters } from '@/hooks/use-table-filters';
-import AppLayout from '@/layouts/app-layout';
 import type { Paginated, ProductStatus } from '@/types/marketplace';
 
 interface InventoryVariant {
@@ -197,12 +195,7 @@ export default function VendorInventory({
     ];
 
     return (
-        <AppLayout
-            breadcrumbs={[
-                { title: 'Vendor', href: '/vendor' },
-                { title: 'Inventory', href: '/vendor/inventory' },
-            ]}
-        >
+        <>
             <Head title="Inventory" />
 
             <div className="flex flex-col gap-6 p-4">
@@ -211,7 +204,6 @@ export default function VendorInventory({
                 </h1>
 
                 <SubscriptionBanner />
-                <VendorNav />
 
                 <div className="flex flex-wrap items-center gap-4">
                     <form
@@ -288,6 +280,13 @@ export default function VendorInventory({
                     }
                 />
             </div>
-        </AppLayout>
+        </>
     );
 }
+
+VendorInventory.layout = {
+    breadcrumbs: [
+        { title: 'Vendor', href: '/vendor' },
+        { title: 'Inventory', href: '/vendor/inventory' },
+    ],
+};

@@ -5,7 +5,6 @@ import { Money } from '@/components/money';
 import { PaginationNav } from '@/components/pagination-nav';
 import { OrderStatusBadge } from '@/components/status-badge';
 import { Card, CardContent } from '@/components/ui/card';
-import AppLayout from '@/layouts/app-layout';
 import { formatDate } from '@/lib/format';
 import type { OrderStatus, Paginated } from '@/types/marketplace';
 
@@ -31,7 +30,7 @@ export default function AccountOrders({
     orders: Paginated<AccountOrderRow>;
 }) {
     return (
-        <AppLayout breadcrumbs={[{ title: 'Orders', href: '/account/orders' }]}>
+        <>
             <Head title="My orders" />
 
             <div className="flex flex-col gap-6 p-4">
@@ -117,6 +116,10 @@ export default function AccountOrders({
                     </div>
                 )}
             </div>
-        </AppLayout>
+        </>
     );
 }
+
+AccountOrders.layout = {
+    breadcrumbs: [{ title: 'Orders', href: '/account/orders' }],
+};

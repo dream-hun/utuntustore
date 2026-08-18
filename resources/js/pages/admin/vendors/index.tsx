@@ -1,7 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { Ban, Check, Eye, RotateCcw, Store, X } from 'lucide-react';
 import { useState } from 'react';
-import { AdminNav } from '@/components/admin/admin-nav';
 import type { AdminVendorRow } from '@/components/admin/types';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import type { DataTableColumn } from '@/components/data-table';
@@ -23,7 +22,6 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useTableFilters } from '@/hooks/use-table-filters';
-import AppLayout from '@/layouts/app-layout';
 import { formatDate } from '@/lib/format';
 import type { Paginated } from '@/types/marketplace';
 
@@ -204,20 +202,13 @@ export default function AdminVendors({
     ];
 
     return (
-        <AppLayout
-            breadcrumbs={[
-                { title: 'Admin', href: '/admin' },
-                { title: 'Vendors', href: '/admin/vendors' },
-            ]}
-        >
+        <>
             <Head title="Vendors" />
 
             <div className="flex flex-col gap-6 p-4">
                 <h1 className="text-2xl font-semibold tracking-tight">
                     Vendors
                 </h1>
-
-                <AdminNav />
 
                 <div className="flex flex-wrap gap-3">
                     <form
@@ -343,6 +334,13 @@ export default function AdminVendors({
                 }
                 onConfirm={moderate}
             />
-        </AppLayout>
+        </>
     );
 }
+
+AdminVendors.layout = {
+    breadcrumbs: [
+        { title: 'Admin', href: '/admin' },
+        { title: 'Vendors', href: '/admin/vendors' },
+    ],
+};

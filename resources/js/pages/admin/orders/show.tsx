@@ -1,28 +1,17 @@
 import { Head, Link } from '@inertiajs/react';
 import { Store } from 'lucide-react';
-import { AdminNav } from '@/components/admin/admin-nav';
 import type { AdminOrderDetail } from '@/components/admin/types';
 import { Money } from '@/components/money';
 import { OrderStatusBadge } from '@/components/status-badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import AppLayout from '@/layouts/app-layout';
 import { formatDate, formatDateTime } from '@/lib/format';
 
 export default function AdminOrderShow({ order }: { order: AdminOrderDetail }) {
     const address = order.shipping_address;
 
     return (
-        <AppLayout
-            breadcrumbs={[
-                { title: 'Admin', href: '/admin' },
-                { title: 'Orders', href: '/admin/orders' },
-                {
-                    title: order.order_number,
-                    href: `/admin/orders/${order.id}`,
-                },
-            ]}
-        >
+        <>
             <Head title={order.order_number} />
 
             <div className="flex flex-col gap-6 p-4">
@@ -37,8 +26,6 @@ export default function AdminOrderShow({ order }: { order: AdminOrderDetail }) {
                     </div>
                     <OrderStatusBadge status={order.status} />
                 </div>
-
-                <AdminNav />
 
                 <div className="grid gap-4 lg:grid-cols-2">
                     <Card>
@@ -203,6 +190,17 @@ export default function AdminOrderShow({ order }: { order: AdminOrderDetail }) {
                     </CardContent>
                 </Card>
             </div>
-        </AppLayout>
+        </>
     );
 }
+
+AdminOrderShow.layout = ({ order }: { order: AdminOrderDetail }) => ({
+    breadcrumbs: [
+        { title: 'Admin', href: '/admin' },
+        { title: 'Orders', href: '/admin/orders' },
+        {
+            title: order.order_number,
+            href: `/admin/orders/${order.id}`,
+        },
+    ],
+});
