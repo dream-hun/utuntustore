@@ -1,16 +1,18 @@
-import { Deferred, Head } from '@inertiajs/react';
-import { Package, Plus } from 'lucide-react';
+import { Deferred, Head, router } from '@inertiajs/react';
+import { Package, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { ProductFormModal } from '@/components/admin/product-form-modal';
 import type {
     AdminProductRow,
     AdminVendorOption,
 } from '@/components/admin/types';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import type { DataTableColumn } from '@/components/data-table';
 import { DataTable } from '@/components/data-table';
 import { EmptyState } from '@/components/empty-state';
 import { Image } from '@/components/image';
 import { Money } from '@/components/money';
+import { RowActions } from '@/components/row-actions';
 import { ProductStatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,17 +25,19 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useTableFilters } from '@/hooks/use-table-filters';
+import admin from '@/routes/admin';
 import type { Paginated } from '@/types/marketplace';
 
 /** The selects need a non-empty value for "no filter". */
 const ANY = 'any';
 
 /**
- * Every shop's catalog in one list, and the one screen where the platform can add to
- * it. A product always belongs to a vendor, so adding one starts by choosing the shop.
+ * Every shop's catalog in one list, and the screen where the platform curates it. A
+ * product always belongs to a vendor, so adding one starts by choosing the shop; an
+ * edit cannot change it afterwards.
  *
- * Changing or removing a product is deliberately absent: that stays with the vendor who
- * has to supply the goods, the same way admin order oversight cannot advance a delivery.
+ * Publishing an existing product is deliberately absent: it puts stock in front of a
+ * buyer and answers to that shop's own selling eligibility, so it stays with the vendor.
  */
 export default function AdminProducts({
     products,
@@ -52,6 +56,8 @@ export default function AdminProducts({
     vendors?: AdminVendorOption[];
 }) {
     const [creating, setCreating] = useState(false);
+    const [editing, setEditing] = useState<AdminProductRow | null>(null);
+    const [deleting, setDeleting] = useState<AdminProductRow | null>(null);
 
     const { values, set, commit, clear, isFiltered } = useTableFilters({
         url: '/admin/products',
@@ -121,6 +127,38 @@ export default function AdminProducts({
             align: 'end',
             cell: (product) => (
                 <Money amount={product.price} currency={product.currency} />
+            ),
+        },
+        {
+            id: 'actions',
+            header: 'Actions',
+            headerHidden: true,
+            headClassName: 'w-10',
+            cell: (product) => (
+                <RowActions
+                    rowLabel={product.name}
+                    groups={[
+                        {
+                            actions: [
+                                {
+                                    label: 'Edit',
+                                    icon: Pencil,
+                                    onSelect: () => setEditing(product),
+                                },
+                            ],
+                        },
+                        {
+                            actions: [
+                                {
+                                    label: 'Delete',
+                                    icon: Trash2,
+                                    destructive: true,
+                                    onSelect: () => setDeleting(product),
+                                },
+                            ],
+                        },
+                    ]}
+                />
             ),
         },
     ];
@@ -293,15 +331,40 @@ export default function AdminProducts({
                 />
             </div>
 
-            {creating ? (
-                // Remounted per open so each new product starts from a clean form.
+            {creating || editing !== null ? (
+                // Remounted per row so the form is seeded from the product being edited.
                 <ProductFormModal
+                    key={editing?.id ?? 'new'}
                     open
-                    onOpenChange={setCreating}
+                    onOpenChange={(open) => {
+                        if (!open) {
+                            setCreating(false);
+                            setEditing(null);
+                        }
+                    }}
+                    product={editing}
                     vendors={vendors}
                     categories={categories}
                 />
             ) : null}
+
+            <ConfirmDialog
+                open={deleting !== null}
+                onOpenChange={(open) => !open && setDeleting(null)}
+                title="Delete this product?"
+                description={`"${deleting?.name}" will be removed from ${deleting?.vendor.shop_name}. One that has already been ordered is archived instead, so past orders keep their record of it.`}
+                confirmLabel="Delete"
+                onConfirm={() => {
+                    if (!deleting) {
+                        return;
+                    }
+
+                    router.delete(admin.products.destroy.url(deleting.id), {
+                        preserveScroll: true,
+                        onFinish: () => setDeleting(null),
+                    });
+                }}
+            />
         </>
     );
 }

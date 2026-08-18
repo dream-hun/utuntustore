@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 use App\Enums\ProductStatus;
 use App\Models\Category;
+use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\User;
 use App\Models\Vendor;
+use App\Models\VendorOrder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
@@ -280,4 +283,114 @@ it('allows the same sku in a different shop', function (): void {
         ->post(route('admin.products.store'), adminProductPayload($this->vendor, $this->category, ['sku' => 'SHARED-1']))
         ->assertRedirect()
         ->assertSessionDoesntHaveErrors();
+});
+
+/**
+ * Editing is the mirror of creating, minus the shop: a product cannot change catalogs,
+ * so the shop comes from the routed product rather than from the payload.
+ */
+it('edits any shop product without rewriting its public slug', function (): void {
+    $product = Product::factory()->for($this->vendor)->for($this->category)->create(['name' => 'Old Name']);
+    $slug = $product->slug;
+
+    $newCategory = Category::factory()->create();
+
+    $this->actingAs($this->admin)
+        ->post(route('admin.products.update', $product), adminProductPayload($this->vendor, $newCategory, [
+            'name' => 'New Name',
+            'sku' => $product->sku,
+            'price' => 7000,
+            'compare_at_price' => null,
+            'stock_quantity' => 12,
+            'images' => [UploadedFile::fake()->image('extra.jpg')],
+        ]))
+        ->assertRedirect()
+        ->assertSessionDoesntHaveErrors();
+
+    $product->refresh();
+
+    expect($product->name)->toBe('New Name')
+        ->and($product->slug)->toBe($slug)
+        ->and($product->category_id)->toBe($newCategory->id)
+        ->and($product->price)->toBe(7000)
+        ->and($product->stock_quantity)->toBe(12)
+        ->and($product->getMedia('images'))->toHaveCount(1);
+});
+
+it('keeps a product in its own shop whatever the payload asks for', function (): void {
+    $rival = Vendor::factory()->sellable()->create();
+    $product = Product::factory()->for($this->vendor)->for($this->category)->create();
+
+    $this->actingAs($this->admin)
+        ->post(route('admin.products.update', $product), adminProductPayload($rival, $this->category, [
+            'sku' => $product->sku,
+        ]))
+        ->assertRedirect();
+
+    expect($product->fresh()->vendor_id)->toBe($this->vendor->id);
+});
+
+it('keeps a product own sku available when it is edited', function (): void {
+    $product = Product::factory()->for($this->vendor)->for($this->category)->create(['sku' => 'KEEP-1']);
+
+    $this->actingAs($this->admin)
+        ->post(route('admin.products.update', $product), adminProductPayload($this->vendor, $this->category, ['sku' => 'KEEP-1']))
+        ->assertRedirect()
+        ->assertSessionDoesntHaveErrors();
+});
+
+it('refuses an edit that would duplicate another sku in the same shop', function (): void {
+    Product::factory()->for($this->vendor)->create(['sku' => 'TAKEN-1']);
+    $product = Product::factory()->for($this->vendor)->for($this->category)->create(['sku' => 'MINE-1']);
+
+    $this->actingAs($this->admin)
+        ->post(route('admin.products.update', $product), adminProductPayload($this->vendor, $this->category, ['sku' => 'TAKEN-1']))
+        ->assertSessionHasErrors('sku');
+
+    expect($product->fresh()->sku)->toBe('MINE-1');
+});
+
+it('edits a product belonging to a shop that can no longer sell', function (): void {
+    $expired = Vendor::factory()->expired()->create();
+    $product = Product::factory()->for($expired)->for($this->category)->create();
+
+    $this->actingAs($this->admin)
+        ->post(route('admin.products.update', $product), adminProductPayload($expired, $this->category, [
+            'name' => 'Tidied Up',
+            'sku' => $product->sku,
+        ]))
+        ->assertRedirect();
+
+    expect($product->fresh()->name)->toBe('Tidied Up');
+});
+
+it('deletes a product nobody has bought', function (): void {
+    $product = Product::factory()->for($this->vendor)->create();
+
+    $this->actingAs($this->admin)
+        ->delete(route('admin.products.destroy', $product))
+        ->assertRedirect();
+
+    expect(Product::query()->whereKey($product->id)->exists())->toBeFalse();
+});
+
+/**
+ * Deleting would leave the customer order without a link back to the product page, and
+ * take its reviews with it. Archiving hides it just as well and keeps both.
+ */
+it('archives a product that has already been ordered', function (): void {
+    $product = Product::factory()->for($this->vendor)->published()->create();
+
+    $order = Order::factory()->create();
+    $vendorOrder = VendorOrder::factory()->for($order)->for($this->vendor)->create();
+    OrderItem::factory()->for($order)->for($vendorOrder)->for($product)->create();
+
+    $this->actingAs($this->admin)
+        ->delete(route('admin.products.destroy', $product))
+        ->assertRedirect();
+
+    $product->refresh();
+
+    expect($product->status)->toBe(ProductStatus::Archived)
+        ->and($product->published_at)->toBeNull();
 });

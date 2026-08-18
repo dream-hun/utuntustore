@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Actions\Vendor\CreateProduct;
+use App\Actions\Vendor\DeleteProduct;
 use App\Actions\Vendor\SetProductPublication;
+use App\Actions\Vendor\UpdateProduct;
 use App\Enums\ProductStatus;
 use App\Enums\VendorStatus;
 use App\Http\Controllers\Concerns\PresentsProducts;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ProductStoreRequest;
+use App\Http\Requests\Admin\ProductUpdateRequest;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\Vendor;
@@ -26,10 +29,11 @@ use Inertia\Response;
  *
  * A product always belongs to a shop — there is no such thing as a product the
  * platform sells directly — so adding one starts by choosing the vendor it is for.
- * That is the only field this form has that a vendor's own form does not.
+ * That is the only field the create form has that a vendor's own form does not, and
+ * editing drops it again: a product cannot change shops.
  *
- * Editing, deleting and unpublishing stay with the vendor who has to supply the goods,
- * matching how admin oversight of orders already works.
+ * Publishing an existing product stays with the vendor: it is the act of putting stock
+ * in front of a buyer, and it answers to that shop's own selling eligibility.
  */
 final class ProductController extends Controller
 {
@@ -105,6 +109,41 @@ final class ProductController extends Controller
             'message' => $request->shouldPublish()
                 ? __('Product added to :shop and published.', ['shop' => $vendor->shop_name])
                 : __('Product added to :shop as a draft.', ['shop' => $vendor->shop_name]),
+        ]);
+
+        return back();
+    }
+
+    /**
+     * Images are appended to the gallery rather than replacing it, exactly as on the
+     * vendor's own form.
+     */
+    public function update(ProductUpdateRequest $request, Product $product, UpdateProduct $updateProduct): RedirectResponse
+    {
+        $this->authorize('update', $product);
+
+        $updateProduct->handle($product, $request->attributesForProduct(), $request->images());
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Product updated.')]);
+
+        return back();
+    }
+
+    /**
+     * A product somebody has already bought is archived rather than deleted, so the
+     * customer's order keeps its link back to the product page and its reviews.
+     */
+    public function destroy(Product $product, DeleteProduct $deleteProduct): RedirectResponse
+    {
+        $this->authorize('delete', $product);
+
+        $archived = $deleteProduct->handle($product);
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => $archived
+                ? __('Product archived. It has been ordered before, so its history is kept.')
+                : __('Product deleted.'),
         ]);
 
         return back();

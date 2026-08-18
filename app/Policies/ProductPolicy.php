@@ -14,8 +14,9 @@ use App\Models\User;
  * "is it yours", and the vendor.can-sell middleware answers "may you publish it".
  * An expired vendor can still edit and unpublish their own catalog.
  *
- * An admin sees the whole catalog and may add to it on a shop's behalf, but changing
- * or removing a product stays with the vendor who has to supply the goods.
+ * An admin curates the whole catalog: they may add, edit and remove any shop's
+ * products. Publishing is the exception — it puts inventory in front of a buyer, so it
+ * stays with a shop that currently may sell.
  */
 final class ProductPolicy
 {
@@ -48,12 +49,20 @@ final class ProductPolicy
 
     public function update(User $user, Product $product): bool
     {
-        return $this->owns($user, $product);
+        if ($this->owns($user, $product)) {
+            return true;
+        }
+
+        return $user->isAdmin();
     }
 
     public function delete(User $user, Product $product): bool
     {
-        return $this->owns($user, $product);
+        if ($this->owns($user, $product)) {
+            return true;
+        }
+
+        return $user->isAdmin();
     }
 
     /**

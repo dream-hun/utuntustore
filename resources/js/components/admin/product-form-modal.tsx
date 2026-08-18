@@ -14,7 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import admin from '@/routes/admin';
-import type { AdminVendorOption } from './types';
+import type { AdminProductRow, AdminVendorOption } from './types';
 
 interface ProductForm {
     vendor: string;
@@ -33,36 +33,43 @@ interface ProductForm {
 }
 
 /**
- * Adds a product to a shop's catalog on the operator's behalf.
+ * Adds a product to a shop's catalog on the operator's behalf, or edits one already
+ * there. The page mounts this keyed by the row, so each open starts from a fresh form
+ * seeded off `product`.
  *
- * The shop comes first because it decides the rest: SKUs only have to be unique inside
- * one shop, and only a shop that may currently sell can have the product published
- * immediately. Both pickers arrive as deferred props, so each shows a skeleton until
- * its list lands.
+ * Creating asks for the shop first because it decides the rest: SKUs only have to be
+ * unique inside one shop, and only a shop that may currently sell can have the product
+ * published immediately. Editing shows the shop but cannot change it — moving a product
+ * between catalogs would strand it away from the orders that already reference it.
+ *
+ * Both pickers arrive as deferred props, so each shows a skeleton until its list lands.
  */
 export function ProductFormModal({
     open,
     onOpenChange,
+    product,
     vendors,
     categories,
 }: {
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    /** Null creates, a row edits. */
+    product: AdminProductRow | null;
     vendors?: AdminVendorOption[];
     categories?: { id: string; name: string }[];
 }) {
     const form = useForm<ProductForm>({
-        vendor: '',
-        name: '',
-        category_id: '',
-        description: '',
-        short_description: '',
-        sku: '',
-        price: 0,
-        compare_at_price: '',
-        stock_quantity: 0,
-        low_stock_threshold: 5,
-        weight: '',
+        vendor: product?.vendor.id ?? '',
+        name: product?.name ?? '',
+        category_id: product?.category.id ?? '',
+        description: product?.description ?? '',
+        short_description: product?.short_description ?? '',
+        sku: product?.sku ?? '',
+        price: product?.price ?? 0,
+        compare_at_price: product?.compare_at_price?.toString() ?? '',
+        stock_quantity: product?.stock_quantity ?? 0,
+        low_stock_threshold: product?.low_stock_threshold ?? 5,
+        weight: product?.weight?.toString() ?? '',
         publish: false,
         images: [],
     });
@@ -88,7 +95,7 @@ export function ProductFormModal({
     const submit = (event: React.FormEvent) => {
         event.preventDefault();
 
-        form.post(admin.products.store.url(), {
+        const options = {
             // Multipart: the body carries the image gallery.
             forceFormData: true,
             preserveScroll: true,
@@ -96,42 +103,78 @@ export function ProductFormModal({
                 form.reset();
                 onOpenChange(false);
             },
-        });
+        };
+
+        if (product) {
+            // The shop and the publication state are not editable here, so they are
+            // dropped rather than sent as fields the update would only ignore.
+            form.transform((data) => {
+                const payload: Record<string, unknown> = { ...data };
+
+                delete payload.vendor;
+                delete payload.publish;
+
+                return payload;
+            });
+
+            // POST, not PUT: the body is multipart because it can carry images.
+            form.post(admin.products.update.url(product.id), options);
+
+            return;
+        }
+
+        form.post(admin.products.store.url(), options);
     };
 
     return (
         <FormModal
             open={open}
             onOpenChange={onOpenChange}
-            title="New product"
-            description="The product is added to the shop you choose, exactly as if that vendor had added it themselves."
+            title={product ? 'Edit product' : 'New product'}
+            description={
+                product
+                    ? 'Changes apply to the vendor’s live catalog. New images are added to the gallery.'
+                    : 'The product is added to the shop you choose, exactly as if that vendor had added it themselves.'
+            }
             onSubmit={submit}
             processing={form.processing}
-            submitLabel="Add product"
+            submitLabel={product ? 'Save changes' : 'Add product'}
             size="lg"
         >
             <div className="grid gap-2">
                 <Label htmlFor="vendor">Shop</Label>
-                <Deferred
-                    data="vendors"
-                    fallback={<Skeleton className="h-9 w-full" />}
-                >
-                    <Select
-                        value={form.data.vendor}
-                        onValueChange={selectVendor}
+                {product ? (
+                    <p
+                        id="vendor"
+                        className="rounded-md border bg-muted/40 px-3 py-2 text-sm"
                     >
-                        <SelectTrigger id="vendor" className="w-full">
-                            <SelectValue placeholder="Choose a shop" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {(vendors ?? []).map((vendor) => (
-                                <SelectItem key={vendor.id} value={vendor.id}>
-                                    {vendor.shop_name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </Deferred>
+                        {product.vendor.shop_name}
+                    </p>
+                ) : (
+                    <Deferred
+                        data="vendors"
+                        fallback={<Skeleton className="h-9 w-full" />}
+                    >
+                        <Select
+                            value={form.data.vendor}
+                            onValueChange={selectVendor}
+                        >
+                            <SelectTrigger id="vendor" className="w-full">
+                                <SelectValue placeholder="Choose a shop" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {(vendors ?? []).map((vendor) => (
+                                    <SelectItem
+                                        key={vendor.id}
+                                        value={vendor.id}
+                                    >
+                                        {vendor.shop_name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </Deferred>
+                )}
                 <InputError message={form.errors.vendor} />
             </div>
 
@@ -300,25 +343,29 @@ export function ProductFormModal({
                 <InputError message={form.errors.images} />
             </div>
 
-            <div className="flex items-center justify-between gap-3 rounded-lg border p-3">
-                <div>
-                    <Label htmlFor="publish">Publish now</Label>
-                    <p className="text-xs text-muted-foreground">
-                        {canPublish
-                            ? 'Off saves it as a draft for the vendor to publish.'
-                            : 'This shop cannot sell right now, so it can only be saved as a draft.'}
-                    </p>
-                </div>
-                <Switch
-                    id="publish"
-                    checked={form.data.publish}
-                    disabled={!canPublish}
-                    onCheckedChange={(checked) =>
-                        form.setData('publish', checked)
-                    }
-                />
-            </div>
-            <InputError message={form.errors.publish} />
+            {product ? null : (
+                <>
+                    <div className="flex items-center justify-between gap-3 rounded-lg border p-3">
+                        <div>
+                            <Label htmlFor="publish">Publish now</Label>
+                            <p className="text-xs text-muted-foreground">
+                                {canPublish
+                                    ? 'Off saves it as a draft for the vendor to publish.'
+                                    : 'This shop cannot sell right now, so it can only be saved as a draft.'}
+                            </p>
+                        </div>
+                        <Switch
+                            id="publish"
+                            checked={form.data.publish}
+                            disabled={!canPublish}
+                            onCheckedChange={(checked) =>
+                                form.setData('publish', checked)
+                            }
+                        />
+                    </div>
+                    <InputError message={form.errors.publish} />
+                </>
+            )}
         </FormModal>
     );
 }
