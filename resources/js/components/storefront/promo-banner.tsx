@@ -1,4 +1,5 @@
 import { Link } from '@inertiajs/react';
+import { Image } from '@/components/image';
 import { cn } from '@/lib/utils';
 
 type PromoVariant = 'primary' | 'ink' | 'cream' | 'aqua';
@@ -54,7 +55,13 @@ export function PromoBanner({
                 className,
             )}
         >
-            <div className="relative z-10 max-w-sm">
+            <div
+                className={cn(
+                    'relative z-10 max-w-sm',
+                    /* Keep the copy clear of the image, which bleeds in over the right 40%. */
+                    image && 'sm:max-w-[55%]',
+                )}
+            >
                 {eyebrow ? (
                     <span className="eyebrow opacity-75">{eyebrow}</span>
                 ) : null}
@@ -90,11 +97,11 @@ export function PromoBanner({
             </div>
 
             {image ? (
-                <img
+                <Image
                     src={image}
                     alt=""
-                    loading="lazy"
-                    className="pointer-events-none absolute inset-y-0 right-0 hidden w-2/5 object-cover opacity-70 sm:block"
+                    fallback="none"
+                    className="pointer-events-none absolute inset-y-0 right-0 hidden h-full w-2/5 object-cover opacity-70 sm:block"
                 />
             ) : null}
         </article>

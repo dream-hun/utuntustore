@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { ImageOff } from 'lucide-react';
+import { Image } from '@/components/image';
 import { Money } from '@/components/money';
 import { RatingStars } from '@/components/storefront/rating-stars';
 import { cn } from '@/lib/utils';
@@ -54,18 +54,12 @@ export function ProductCard({ product, className }: ProductCardProps) {
             )}
         >
             <div className="relative aspect-square overflow-hidden bg-cream">
-                {product.primary_image_url ? (
-                    <img
-                        src={product.primary_image_url}
-                        alt={product.name}
-                        loading="lazy"
-                        className="absolute inset-0 size-full object-cover transition duration-700 motion-safe:group-hover:scale-105"
-                    />
-                ) : (
-                    <div className="flex size-full items-center justify-center text-muted-foreground">
-                        <ImageOff className="size-8" aria-hidden="true" />
-                    </div>
-                )}
+                <Image
+                    src={product.primary_image_url}
+                    alt={product.name}
+                    iconClassName="size-8"
+                    className="absolute inset-0 size-full object-cover transition duration-700 motion-safe:group-hover:scale-105"
+                />
 
                 <div className="absolute top-3 left-3 flex flex-col items-start gap-1.5">
                     {!product.in_stock ? (
@@ -101,7 +95,9 @@ export function ProductCard({ product, className }: ProductCardProps) {
                     />
                 ) : null}
 
-                <div className="mt-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+                {/* Wraps rather than squeezing: two cards per row on a phone leaves
+                    too little width for a six-figure franc amount beside the badge. */}
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
                     <div className="flex min-w-0 items-baseline gap-2">
                         <Money
                             amount={product.price}

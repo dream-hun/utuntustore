@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { Store } from 'lucide-react';
+import { Image } from '@/components/image';
 import { cn } from '@/lib/utils';
 import { show as vendorShow } from '@/routes/vendors';
 
@@ -31,25 +32,24 @@ export function VendorCard({ vendor, className }: VendorCardProps) {
         >
             <div className="h-24 w-full bg-aqua-soft" />
 
-            <div className="relative px-4 pb-5">
+            {/*
+             * pt-9 rather than a margin on the text block: a margin there collapses
+             * through this padding-less wrapper, dragging the wrapper — and the logo
+             * positioned against it — down over the name instead of clearing it.
+             */}
+            <div className="relative px-4 pt-9 pb-5">
                 {/* Logo lifted out of the banner */}
-                <span className="absolute -top-7 grid size-14 place-items-center overflow-hidden rounded-2xl border-4 border-card bg-cream">
-                    {vendor.logo_url ? (
-                        <img
-                            src={vendor.logo_url}
-                            alt=""
-                            loading="lazy"
-                            className="size-full object-cover"
-                        />
-                    ) : (
-                        <Store
-                            className="size-5 text-muted-foreground"
-                            aria-hidden="true"
-                        />
-                    )}
+                <span className="absolute -top-7 left-4 grid size-14 place-items-center overflow-hidden rounded-2xl border-4 border-card bg-cream">
+                    <Image
+                        src={vendor.logo_url}
+                        alt=""
+                        icon={Store}
+                        iconClassName="size-5"
+                        className="size-full object-cover"
+                    />
                 </span>
 
-                <div className="mt-9 space-y-1.5">
+                <div className="space-y-1.5">
                     <p className="truncate font-heading text-base transition-colors group-hover:text-primary">
                         {vendor.shop_name}
                     </p>

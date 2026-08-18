@@ -11,6 +11,7 @@ import {
     Truck,
 } from 'lucide-react';
 import { EmptyState } from '@/components/empty-state';
+import { Image } from '@/components/image';
 import { ProductCard } from '@/components/storefront/product-card';
 import { ProductGridSkeleton } from '@/components/storefront/product-card-skeleton';
 import { PromoBanner } from '@/components/storefront/promo-banner';
@@ -53,12 +54,19 @@ export default function Home({
             {/* ─── Hero ──────────────────────────────────────────────────── */}
             <section className="mx-auto w-full max-w-[1400px] px-4 pt-6 lg:px-8">
                 <div className="relative overflow-hidden rounded-3xl bg-cream">
-                    <img
+                    <Image
                         src={image('hero-watch.jpg')}
                         alt="A curated selection from local shops"
+                        priority
                         className="absolute inset-0 size-full object-cover"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-r from-ink/75 via-ink/40 to-transparent" />
+                    {/*
+                     * Below lg the copy spans the whole panel, so the left-to-right
+                     * wash left it on bare photo — the paragraph landed on the watch
+                     * face at roughly 4:1. Darken top to bottom there instead, heaviest
+                     * across the middle band where the body copy sits.
+                     */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-ink/85 via-ink/70 to-ink/55 lg:bg-gradient-to-r lg:from-ink/80 lg:via-ink/45 lg:to-transparent" />
                     <div className="relative z-10 flex min-h-[380px] flex-col justify-between gap-10 p-6 sm:min-h-[460px] sm:p-10 lg:min-h-[560px] lg:p-14">
                         <div className="max-w-2xl">
                             <span className="eyebrow text-white/80">
@@ -112,7 +120,7 @@ export default function Home({
                         </h2>
                         <Link
                             href={shop.url()}
-                            className="mt-2 inline-block text-sm font-semibold text-primary hover:opacity-80"
+                            className="mt-2 inline-flex min-h-6 items-center text-sm font-semibold text-primary hover:opacity-80"
                         >
                             See all
                         </Link>
@@ -193,7 +201,7 @@ export default function Home({
             >
                 <div className="grid gap-4 lg:grid-cols-2">
                     <div className="relative overflow-hidden rounded-3xl bg-primary p-7 text-primary-foreground sm:p-10">
-                        <div className="relative z-10 max-w-xs">
+                        <div className="relative z-10 max-w-xs sm:max-w-[50%]">
                             <span className="eyebrow opacity-80">
                                 Made for easy gifting
                             </span>
@@ -211,11 +219,11 @@ export default function Home({
                                 Shop now
                             </Link>
                         </div>
-                        <img
+                        <Image
                             src={image('lifestyle-1.jpg')}
                             alt=""
-                            loading="lazy"
-                            className="pointer-events-none absolute -right-4 -bottom-6 hidden h-[85%] w-1/2 rounded-2xl object-cover sm:block"
+                            fallback="none"
+                            className="pointer-events-none absolute -right-4 -bottom-6 hidden h-[85%] w-[45%] rounded-2xl object-cover sm:block"
                         />
                     </div>
 
@@ -250,10 +258,10 @@ export default function Home({
                                         Shop now
                                     </Link>
                                 </div>
-                                <img
+                                <Image
                                     src={image(banner.img)}
                                     alt=""
-                                    loading="lazy"
+                                    fallback="none"
                                     className="aspect-square w-full rounded-2xl object-cover"
                                 />
                             </div>
