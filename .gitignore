@@ -50,3 +50,7 @@ yarn-error.log
 
 # Reference starter kit kept locally; not part of this application.
 /joyful-commerce-kit-main
+.env.before_lerd
+.lerd.yaml
+.node-version
+.php-version

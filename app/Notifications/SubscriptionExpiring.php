@@ -51,8 +51,6 @@ final class SubscriptionExpiring extends Notification implements ShouldQueue
             ->line(__('After it expires you have :days days of grace before your shop is hidden from the storefront.', [
                 'days' => $graceDays,
             ]))
-            // Expiry never deletes anything, and saying so up front prevents a panicked
-            // vendor assuming their catalog is gone.
             ->line(__('Your products and order history are never deleted. Paying again restores your shop exactly as it was.'))
             ->action(__('View your subscription'), route('vendor.subscription.index'));
     }
