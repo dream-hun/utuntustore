@@ -57,7 +57,7 @@ function inertiaPartial(string $component, array $only): array
 {
     // The asset version is derived per request by HandleInertiaRequests, so it has to
     // be asked for the same way rather than read off the (still unset) facade.
-    $version = app(HandleInertiaRequests::class)->version(Request::create('/'));
+    $version = resolve(HandleInertiaRequests::class)->version(Request::create('/'));
 
     return [
         'X-Inertia' => 'true',

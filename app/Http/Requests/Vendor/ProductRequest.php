@@ -9,6 +9,7 @@ use App\Models\Vendor;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\UploadedFile;
+use Override;
 
 /**
  * Validation shared by product create and edit.
@@ -31,6 +32,7 @@ final class ProductRequest extends FormRequest
     /**
      * @return array<string, string>
      */
+    #[Override]
     public function messages(): array
     {
         return $this->productMessages();

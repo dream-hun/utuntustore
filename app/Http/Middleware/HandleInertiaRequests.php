@@ -14,6 +14,7 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Middleware;
+use Override;
 
 final class HandleInertiaRequests extends Middleware
 {
@@ -31,6 +32,7 @@ final class HandleInertiaRequests extends Middleware
      *
      * @see https://inertiajs.com/asset-versioning
      */
+    #[Override]
     public function version(Request $request): ?string
     {
         return parent::version($request);
@@ -43,6 +45,7 @@ final class HandleInertiaRequests extends Middleware
      *
      * @return array<string, mixed>
      */
+    #[Override]
     public function share(Request $request): array
     {
         $user = $request->user();
@@ -75,7 +78,7 @@ final class HandleInertiaRequests extends Middleware
             // Optional, so the basket is only assembled when the cart drawer actually
             // asks for it rather than on every page load that never opens the drawer.
             'cartPreview' => Inertia::optional(
-                fn (): array => app(BuildCartPreview::class)->handle($this->currentCart($request)),
+                fn (): array => resolve(BuildCartPreview::class)->handle($this->currentCart($request)),
             ),
 
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',

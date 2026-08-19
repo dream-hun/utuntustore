@@ -12,6 +12,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
+use Override;
 
 /**
  * An admin adding a product on a shop's behalf.
@@ -51,6 +52,7 @@ final class ProductStoreRequest extends FormRequest
     /**
      * @return array<string, string>
      */
+    #[Override]
     public function messages(): array
     {
         return $this->productMessages();
@@ -72,7 +74,7 @@ final class ProductStoreRequest extends FormRequest
 
             $vendor = $this->resolveVendor();
 
-            if ($vendor === null || $vendor->canSell()) {
+            if (! $vendor instanceof Vendor || $vendor->canSell()) {
                 return;
             }
 
@@ -90,7 +92,7 @@ final class ProductStoreRequest extends FormRequest
     {
         $vendor = $this->resolveVendor();
 
-        abort_if($vendor === null, 404);
+        abort_if(! $vendor instanceof Vendor, 404);
 
         return $vendor;
     }

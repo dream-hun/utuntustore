@@ -10,6 +10,7 @@ use Database\Factories\VendorDeliveryAreaFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Override;
 
 /**
  * Where a vendor delivers and what they charge for it.
@@ -60,6 +61,7 @@ final class VendorDeliveryArea extends Model
     /**
      * @return array<string, string>
      */
+    #[Override]
     protected function casts(): array
     {
         return [

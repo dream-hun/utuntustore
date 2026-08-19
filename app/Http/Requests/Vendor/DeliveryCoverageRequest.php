@@ -8,6 +8,7 @@ use App\Support\Cast;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Override;
 
 /**
  * Declaring new delivery coverage.
@@ -38,6 +39,7 @@ final class DeliveryCoverageRequest extends FormRequest
     /**
      * @return array<string, string>
      */
+    #[Override]
     public function attributes(): array
     {
         return [

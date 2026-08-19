@@ -20,6 +20,8 @@ use App\Models\Sector;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorDeliveryArea;
+use App\Support\Checkout\CheckoutQuote;
+use App\Support\Checkout\VendorQuote;
 use Illuminate\Http\Request;
 use Illuminate\Session\ArraySessionHandler;
 use Illuminate\Session\Store;
@@ -78,7 +80,7 @@ function cartLineFor(Vendor $vendor, int $price, int $quantity = 1): Product
     return $product;
 }
 
-function quoteTheCart(?Coupon $coupon = null): App\Support\Checkout\CheckoutQuote
+function quoteTheCart(?Coupon $coupon = null): CheckoutQuote
 {
     return resolve(BuildCheckoutQuote::class)->handle(test()->cart->fresh(), test()->address, $coupon);
 }
@@ -95,7 +97,7 @@ it('spreads a platform-wide discount proportionally and to the last franc', func
     $quote = quoteTheCart($coupon);
 
     $shares = array_map(
-        static fn (App\Support\Checkout\VendorQuote $vendorQuote): int => $vendorQuote->discount,
+        static fn (VendorQuote $vendorQuote): int => $vendorQuote->discount,
         $quote->vendorQuotes,
     );
 
@@ -122,7 +124,7 @@ it('hands out the rounding remainder rather than losing it', function (): void {
     $quote = quoteTheCart($coupon);
 
     $shares = array_map(
-        static fn (App\Support\Checkout\VendorQuote $vendorQuote): int => $vendorQuote->discount,
+        static fn (VendorQuote $vendorQuote): int => $vendorQuote->discount,
         $quote->vendorQuotes,
     );
 
@@ -155,7 +157,7 @@ it('hands each shop at most one of the leftover francs', function (): void {
     $quote = quoteTheCart($coupon);
 
     $shares = array_map(
-        static fn (App\Support\Checkout\VendorQuote $vendorQuote): int => $vendorQuote->discount,
+        static fn (VendorQuote $vendorQuote): int => $vendorQuote->discount,
         $quote->vendorQuotes,
     );
 
@@ -187,12 +189,12 @@ it('spends the whole discount even when the last shop is too small to absorb the
     $quote = quoteTheCart($coupon);
 
     $shares = array_map(
-        static fn (App\Support\Checkout\VendorQuote $vendorQuote): int => $vendorQuote->discount,
+        static fn (VendorQuote $vendorQuote): int => $vendorQuote->discount,
         $quote->vendorQuotes,
     );
 
     $vendorTotals = array_sum(array_map(
-        static fn (App\Support\Checkout\VendorQuote $vendorQuote): int => $vendorQuote->total,
+        static fn (VendorQuote $vendorQuote): int => $vendorQuote->total,
         $quote->vendorQuotes,
     ));
 
@@ -316,6 +318,7 @@ it('adds to an existing basket line rather than duplicating it', function (): vo
     $addToCart = resolve(AddToCart::class);
 
     $addToCart->handle($this->cart, $product, 2);
+
     $item = $addToCart->handle($this->cart->fresh(), $product, 3);
 
     expect(CartItem::query()->count())->toBe(1)

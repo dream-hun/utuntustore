@@ -8,6 +8,7 @@ use Carbon\CarbonImmutable;
 use Database\Factories\SettingFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Override;
 
 /**
  * Platform configuration an admin can change without a deployment: the subscription
@@ -32,6 +33,7 @@ final class Setting extends Model
     /**
      * @return array<string, string>
      */
+    #[Override]
     protected function casts(): array
     {
         return [];

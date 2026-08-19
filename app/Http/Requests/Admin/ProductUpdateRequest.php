@@ -9,6 +9,7 @@ use App\Models\Product;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\UploadedFile;
+use Override;
 
 /**
  * An admin editing a product in a shop's catalog.
@@ -33,6 +34,7 @@ final class ProductUpdateRequest extends FormRequest
     /**
      * @return array<string, string>
      */
+    #[Override]
     public function messages(): array
     {
         return $this->productMessages();

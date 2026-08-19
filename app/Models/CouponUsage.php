@@ -10,6 +10,7 @@ use Database\Factories\CouponUsageFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Override;
 
 /**
  * An immutable redemption record.
@@ -58,6 +59,7 @@ final class CouponUsage extends Model
     /**
      * @return array<string, string>
      */
+    #[Override]
     protected function casts(): array
     {
         return [];

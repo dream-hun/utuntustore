@@ -7,6 +7,7 @@ namespace App\Http\Requests\Storefront;
 use App\Concerns\ResolvesAuthenticatedUser;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Override;
 
 /**
  * Submitting a checkout.
@@ -56,6 +57,7 @@ final class PlaceOrderRequest extends FormRequest
     /**
      * @return array<string, string>
      */
+    #[Override]
     public function messages(): array
     {
         return [

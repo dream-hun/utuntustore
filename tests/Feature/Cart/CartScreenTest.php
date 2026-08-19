@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\Vendor;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Session\SessionManager;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -261,11 +262,12 @@ it('counts a guest basket in the header badge', function (): void {
     // the array session driver, which hands every request a brand new session id, so a
     // guest basket cannot survive from one test request to the next.
     $request = Request::create('/');
-    $session = app('session')->driver();
+    $session = resolve(SessionManager::class)->driver();
     $session->setId($cart->session_id);
+
     $request->setLaravelSession($session);
 
-    $shared = app(HandleInertiaRequests::class)->share($request);
+    $shared = resolve(HandleInertiaRequests::class)->share($request);
     $cartCount = $shared['cartCount'];
 
     expect($cartCount)->toBeCallable()

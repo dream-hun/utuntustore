@@ -282,7 +282,11 @@ final readonly class BuildCheckoutQuote
         $allocated = 0;
 
         foreach ($vendorQuotes as $index => $quote) {
-            if (! $this->couponAppliesTo($coupon, $quote) || $quote->subtotal <= 0) {
+            if (! $this->couponAppliesTo($coupon, $quote)) {
+                continue;
+            }
+
+            if ($quote->subtotal <= 0) {
                 continue;
             }
 

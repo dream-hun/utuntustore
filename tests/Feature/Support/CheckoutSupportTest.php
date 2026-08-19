@@ -11,13 +11,16 @@ use App\Exceptions\CheckoutException;
 use App\Models\Address;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\Sector;
 use App\Models\Setting;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Support\Checkout\CheckoutProblem;
 use App\Support\Checkout\CheckoutQuote;
+use App\Support\Checkout\VendorQuote;
 use App\Support\LocationDirectory;
 use App\Support\Settings;
+use Illuminate\Validation\Rules\Password;
 
 /**
  * The quote object, the exception it raises, and the small pieces of infrastructure
@@ -28,7 +31,7 @@ it('refuses to place a quote carrying an order-level blocking problem', function
     $address = Address::factory()->create();
 
     $quote = new CheckoutQuote(
-        vendorQuotes: [new App\Support\Checkout\VendorQuote(
+        vendorQuotes: [new VendorQuote(
             vendor: $vendor,
             lines: [],
             subtotal: 0,
@@ -59,7 +62,7 @@ it('lets a quote through when its only problem is a price change', function (): 
     $vendor = Vendor::factory()->sellable()->create();
 
     $quote = new CheckoutQuote(
-        vendorQuotes: [new App\Support\Checkout\VendorQuote(
+        vendorQuotes: [new VendorQuote(
             vendor: $vendor,
             lines: [],
             subtotal: 1000,
@@ -185,7 +188,7 @@ it('stores platform settings as rows', function (): void {
  * too, and their only handle is the district uuids inside the cached district list.
  */
 it('drops the cached geography including every district sector list', function (): void {
-    $sector = App\Models\Sector::factory()->create();
+    $sector = Sector::factory()->create();
     $district = $sector->district;
 
     $locations = resolve(LocationDirectory::class);
@@ -194,7 +197,7 @@ it('drops the cached geography including every district sector list', function (
         ->and($locations->sectors($district->uuid))->toHaveCount(1)
         ->and($locations->sectorOptions($district->uuid))->toHaveCount(1);
 
-    App\Models\Sector::factory()->create(['district_id' => $district->id]);
+    Sector::factory()->create(['district_id' => $district->id]);
 
     // Still the cached answer.
     expect($locations->sectors($district->uuid))->toHaveCount(1);
@@ -210,12 +213,12 @@ it('serves no sectors for a district that was never asked about', function (): v
 });
 
 it('applies the strongest password rules only in production', function (): void {
-    expect(Illuminate\Validation\Rules\Password::default()->toPasswordRulesString())
+    expect(Password::default()->toPasswordRulesString())
         ->not->toContain('minlength: 12');
 
     $this->app->detectEnvironment(fn (): string => 'production');
 
-    $rules = Illuminate\Validation\Rules\Password::default()->toPasswordRulesString();
+    $rules = Password::default()->toPasswordRulesString();
 
     expect($rules)->toContain('minlength: 12')
         ->and($rules)->toContain('required: special');

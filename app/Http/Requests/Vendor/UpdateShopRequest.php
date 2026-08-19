@@ -7,6 +7,7 @@ namespace App\Http\Requests\Vendor;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\UploadedFile;
+use Override;
 
 /**
  * Ownership is guaranteed by the `vendor` middleware, which resolves the current
@@ -35,6 +36,7 @@ final class UpdateShopRequest extends FormRequest
     /**
      * @return array<string, string>
      */
+    #[Override]
     public function attributes(): array
     {
         return [

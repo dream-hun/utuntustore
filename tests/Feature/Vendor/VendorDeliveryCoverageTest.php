@@ -7,7 +7,6 @@ use App\Actions\Vendor\AdjustStock;
 use App\Actions\Vendor\SetProductPublication;
 use App\Actions\Vendor\UpdateDeliveryArea;
 use App\Enums\UserRole;
-use App\Models\District;
 use App\Models\Product;
 use App\Models\Sector;
 use App\Models\Vendor;

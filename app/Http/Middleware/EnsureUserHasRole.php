@@ -17,7 +17,7 @@ use Symfony\Component\HttpFoundation\Response;
  * A suspended user is refused everywhere, regardless of role — suspension is an
  * account-level state, so checking it here means no individual controller can
  * forget to.
-*/
+ */
 final class EnsureUserHasRole
 {
     /**

@@ -32,7 +32,11 @@ function seederCode(string $seeder): string
             continue;
         }
 
-        if ($token[0] === T_COMMENT || $token[0] === T_DOC_COMMENT) {
+        if ($token[0] === T_COMMENT) {
+            continue;
+        }
+
+        if ($token[0] === T_DOC_COMMENT) {
             continue;
         }
 

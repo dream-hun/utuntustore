@@ -8,6 +8,7 @@ use App\Models\District;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Override;
 
 /**
  * A new delivery address added inline at checkout.
@@ -57,6 +58,7 @@ final class StoreCheckoutAddressRequest extends FormRequest
     /**
      * @return array<string, string>
      */
+    #[Override]
     public function messages(): array
     {
         return [

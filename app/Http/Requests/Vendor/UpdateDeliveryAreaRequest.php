@@ -6,6 +6,7 @@ namespace App\Http\Requests\Vendor;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Override;
 
 /**
  * Editing the terms of an area a vendor already covers.
@@ -32,6 +33,7 @@ final class UpdateDeliveryAreaRequest extends FormRequest
     /**
      * @return array<string, string>
      */
+    #[Override]
     public function attributes(): array
     {
         return [

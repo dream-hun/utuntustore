@@ -6,6 +6,7 @@ namespace App\Http\Requests\Vendor;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Override;
 
 final class AdjustStockRequest extends FormRequest
 {
@@ -22,6 +23,7 @@ final class AdjustStockRequest extends FormRequest
     /**
      * @return array<string, string>
      */
+    #[Override]
     public function attributes(): array
     {
         return [

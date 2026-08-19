@@ -88,6 +88,7 @@ it('separates owning a product from being allowed to publish it', function (): v
 
     $expired = Vendor::factory()->expired()->create();
     $expired->user->update(['role' => UserRole::Vendor]);
+
     $theirProduct = Product::factory()->for($expired)->create();
 
     expect($expired->user->can('update', $theirProduct))->toBeTrue()

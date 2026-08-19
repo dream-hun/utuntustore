@@ -129,7 +129,7 @@ it('notifies each vendor on their lead day and nobody else', function (): void {
         ->expectsOutputToContain('Sent '.count($leadDays).' reminder(s).')
         ->assertSuccessful();
 
-    foreach ($vendors as $days => $vendor) {
+    foreach ($vendors as $vendor) {
         Notification::assertSentTo(
             $vendor->user,
             SubscriptionExpiring::class,
