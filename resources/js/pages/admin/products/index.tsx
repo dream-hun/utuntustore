@@ -33,7 +33,7 @@ const ANY = 'any';
 
 /**
  * Every shop's catalog in one list, and the screen where the platform curates it. A
- * product always belongs to a vendor, so adding one starts by choosing the shop; an
+ * product defaults to the admin's store unless another shop is selected; an
  * edit cannot change it afterwards.
  *
  * Publishing an existing product is deliberately absent: it puts stock in front of a
@@ -312,7 +312,7 @@ export default function AdminProducts({
                             description={
                                 isFiltered
                                     ? 'No product matches these filters.'
-                                    : 'Vendors add their own products. You can also add one to an approved shop yourself.'
+                                    : undefined
                             }
                             action={
                                 isFiltered ? (

@@ -216,14 +216,78 @@ it('refuses a shop that is not approved', function (): void {
     expect(Product::query()->count())->toBe(0);
 });
 
-it('refuses a product with no shop', function (): void {
+it('creates a platform store when no shop is selected', function (?string $vendor): void {
+    $this->vendor->delete();
+
+    $this->actingAs($this->admin)
+        ->post(route('admin.products.store'), adminProductPayload($this->vendor, $this->category, [
+            'vendor' => $vendor,
+        ]))
+        ->assertRedirect()
+        ->assertSessionDoesntHaveErrors();
+
+    $product = Product::query()->sole();
+
+    expect($product->vendor->user_id)->toBe($this->admin->id)
+        ->and($product->vendor->is_platform_owned)->toBeTrue()
+        ->and($product->vendor->canSell())->toBeTrue()
+        ->and($product->status)->toBe(ProductStatus::Draft);
+})->with([null, '']);
+
+it('publishes without a vendor field and reuses the admin store', function (): void {
+    $payload = adminProductPayload($this->vendor, $this->category, ['publish' => true]);
+    unset($payload['vendor']);
+
+    $this->actingAs($this->admin)->post(route('admin.products.store'), $payload)
+        ->assertRedirect()->assertSessionDoesntHaveErrors();
+
+    $product = Product::query()->sole();
+
+    expect($product->status)->toBe(ProductStatus::Published)
+        ->and($product->published_at)->not->toBeNull();
+
+    $this->post(route('admin.products.store'), [...$payload, 'sku' => 'COF-002'])
+        ->assertRedirect()->assertSessionDoesntHaveErrors();
+
+    expect($this->admin->vendor()->count())->toBe(1)
+        ->and($product->vendor->products()->count())->toBe(2);
+
+    $this->post(route('admin.products.store'), $payload)->assertSessionHasErrors('sku');
+});
+
+it('does not create a store for invalid product data', function (): void {
+    $this->actingAs($this->admin)
+        ->post(route('admin.products.store'), adminProductPayload($this->vendor, $this->category, [
+            'vendor' => null,
+            'name' => '',
+        ]))
+        ->assertSessionHasErrors('name');
+
+    expect($this->admin->vendor()->exists())->toBeFalse();
+});
+
+it('rejects an unknown selected shop instead of using the admin store', function (): void {
+    $this->actingAs($this->admin)
+        ->post(route('admin.products.store'), adminProductPayload($this->vendor, $this->category, [
+            'vendor' => (string) Illuminate\Support\Str::uuid(),
+        ]))
+        ->assertSessionHasErrors('vendor');
+
+    expect($this->admin->vendor()->exists())->toBeFalse()
+        ->and(Product::query()->count())->toBe(0);
+});
+
+it('does not bypass moderation for an admin existing store', function (): void {
+    Vendor::factory()->for($this->admin)->create();
+
     $this->actingAs($this->admin)
         ->post(route('admin.products.store'), adminProductPayload($this->vendor, $this->category, [
             'vendor' => null,
         ]))
         ->assertSessionHasErrors('vendor');
 
-    expect(Product::query()->count())->toBe(0);
+    expect(Product::query()->count())->toBe(0)
+        ->and($this->admin->vendor->is_platform_owned)->toBeFalse();
 });
 
 it('stores blank optional product fields as null', function (): void {
