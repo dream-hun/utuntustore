@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Admin;
 
 use App\Concerns\ProductValidationRules;
+use App\Concerns\ResolvesAuthenticatedUser;
 use App\Enums\VendorStatus;
 use App\Models\Vendor;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -17,8 +18,8 @@ use Override;
 /**
  * An admin adding a product on a shop's behalf.
  *
- * The one field a vendor never submits is the shop: a vendor's own form takes it from
- * the signed-in user, while here it is chosen, so it is validated like any other input.
+ * A blank shop uses the admin's own store, provisioned after validation if needed.
+ * An explicitly selected shop is validated like any other input.
  * Only approved shops are offered — a pending or rejected application has no catalog to
  * add to.
  *
@@ -28,6 +29,7 @@ use Override;
 final class ProductStoreRequest extends FormRequest
 {
     use ProductValidationRules;
+    use ResolvesAuthenticatedUser;
 
     private ?Vendor $vendor = null;
 
@@ -40,7 +42,7 @@ final class ProductStoreRequest extends FormRequest
     {
         return [
             'vendor' => [
-                'required',
+                'nullable',
                 'uuid',
                 Rule::exists('vendors', 'uuid')->where('status', VendorStatus::Approved->value),
             ],
@@ -68,11 +70,15 @@ final class ProductStoreRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {
+            $vendor = $this->resolveVendor();
+
+            if ($vendor instanceof Vendor && $vendor->status !== VendorStatus::Approved) {
+                $validator->errors()->add('vendor', __('This shop is not approved.'));
+            }
+
             if (! $this->boolean('publish')) {
                 return;
             }
-
-            $vendor = $this->resolveVendor();
 
             if (! $vendor instanceof Vendor || $vendor->canSell()) {
                 return;
@@ -88,13 +94,9 @@ final class ProductStoreRequest extends FormRequest
     /**
      * The shop the product is being added to.
      */
-    public function vendor(): Vendor
+    public function vendor(): ?Vendor
     {
-        $vendor = $this->resolveVendor();
-
-        abort_if(! $vendor instanceof Vendor, 404);
-
-        return $vendor;
+        return $this->resolveVendor();
     }
 
     public function shouldPublish(): bool
@@ -128,6 +130,10 @@ final class ProductStoreRequest extends FormRequest
         }
 
         $this->vendorResolved = true;
+
+        if (! $this->filled('vendor')) {
+            return $this->vendor = $this->authenticatedUser()->vendor()->first();
+        }
 
         $this->vendor = Vendor::query()
             ->where('uuid', $this->string('vendor')->toString())

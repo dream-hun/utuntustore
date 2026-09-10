@@ -37,7 +37,7 @@ interface ProductForm {
  * there. The page mounts this keyed by the row, so each open starts from a fresh form
  * seeded off `product`.
  *
- * Creating asks for the shop first because it decides the rest: SKUs only have to be
+ * Creating defaults to the admin's store: SKUs only have to be
  * unique inside one shop, and only a shop that may currently sell can have the product
  * published immediately. Editing shows the shop but cannot change it — moving a product
  * between catalogs would strand it away from the orders that already reference it.
@@ -88,7 +88,10 @@ export function ProductFormModal({
         form.setData((current) => ({
             ...current,
             vendor: vendorId,
-            publish: vendor?.can_sell === true ? current.publish : false,
+            publish:
+                vendorId === '' || vendor?.can_sell === true
+                    ? current.publish
+                    : false,
         }));
     };
 
@@ -134,7 +137,7 @@ export function ProductFormModal({
             description={
                 product
                     ? 'Changes apply to the vendor’s live catalog. New images are added to the gallery.'
-                    : 'The product is added to the shop you choose, exactly as if that vendor had added it themselves.'
+                    : undefined
             }
             onSubmit={submit}
             processing={form.processing}
@@ -156,13 +159,20 @@ export function ProductFormModal({
                         fallback={<Skeleton className="h-9 w-full" />}
                     >
                         <Select
-                            value={form.data.vendor}
-                            onValueChange={selectVendor}
+                            value={form.data.vendor || 'default-store'}
+                            onValueChange={(value) =>
+                                selectVendor(
+                                    value === 'default-store' ? '' : value,
+                                )
+                            }
                         >
                             <SelectTrigger id="vendor" className="w-full">
                                 <SelectValue placeholder="Choose a shop" />
                             </SelectTrigger>
                             <SelectContent>
+                                <SelectItem value="default-store">
+                                    My store
+                                </SelectItem>
                                 {(vendors ?? []).map((vendor) => (
                                     <SelectItem
                                         key={vendor.id}
@@ -350,7 +360,7 @@ export function ProductFormModal({
                             <Label htmlFor="publish">Publish now</Label>
                             <p className="text-xs text-muted-foreground">
                                 {canPublish
-                                    ? 'Off saves it as a draft for the vendor to publish.'
+                                    ? 'Off saves it as a draft.'
                                     : 'This shop cannot sell right now, so it can only be saved as a draft.'}
                             </p>
                         </div>

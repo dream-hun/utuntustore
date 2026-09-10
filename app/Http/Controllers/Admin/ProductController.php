@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Actions\Admin\ResolveProductVendor;
 use App\Actions\Vendor\CreateProduct;
 use App\Actions\Vendor\DeleteProduct;
 use App\Actions\Vendor\SetProductPublication;
@@ -27,10 +28,8 @@ use Inertia\Response;
 /**
  * The whole platform's catalog, and the one place an admin can add to it.
  *
- * A product always belongs to a shop — there is no such thing as a product the
- * platform sells directly — so adding one starts by choosing the vendor it is for.
- * That is the only field the create form has that a vendor's own form does not, and
- * editing drops it again: a product cannot change shops.
+ * Leaving the shop blank uses the admin's store, created on demand as platform-owned.
+ * Editing cannot change a product's shop.
  *
  * Publishing an existing product stays with the vendor: it is the act of putting stock
  * in front of a buyer, and it answers to that shop's own selling eligibility.
@@ -91,12 +90,13 @@ final class ProductController extends Controller
      */
     public function store(
         ProductStoreRequest $request,
+        ResolveProductVendor $resolveProductVendor,
         CreateProduct $createProduct,
         SetProductPublication $setProductPublication,
     ): RedirectResponse {
         $this->authorize('create', Product::class);
 
-        $vendor = $request->vendor();
+        $vendor = $resolveProductVendor->handle($this->currentUser($request), $request->vendor());
 
         $product = $createProduct->handle($vendor, $request->attributesForProduct(), $request->images());
 
